@@ -41,7 +41,7 @@ fun Navbar(navController: NavHostController) {
     ) {
         items.forEach { screen ->
             val selected = currentRoute == screen.route
-
+            //box per selezione
             Box(
                 modifier = Modifier
                     .weight(1f)
