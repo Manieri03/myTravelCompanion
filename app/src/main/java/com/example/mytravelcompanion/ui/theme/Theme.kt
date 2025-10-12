@@ -52,7 +52,7 @@ fun MyTravelCompanionTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = myTipography,
         content = content
     )
 }
