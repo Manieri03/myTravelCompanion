@@ -23,4 +23,10 @@ class TripViewModel(private val dao: TripDao) : ViewModel() {
             dao.deleteAllTrips()
         }
     }
+
+    fun deleteTrip(trip: Trip) {
+        viewModelScope.launch {
+            dao.deleteTrip(trip)
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.example.mytravelcompanion.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,6 +30,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import com.example.mytravelcompanion.R
+import com.example.mytravelcompanion.ui.theme.myTipography2
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -58,16 +63,28 @@ fun Plan() {
             .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(45.dp)
     ) {
-        Row {
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Icona pianificazione",
-                tint = MaterialTheme.colorScheme.primary,
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.tc_logo),
+                contentDescription = "Logo app",
                 modifier = Modifier
-                    .size(28.dp)
-                    .padding(end = 8.dp)
+                    .size(70.dp)
+                    .clip(RoundedCornerShape(16.dp))
             )
-            Text("Pianifica il tuo viaggio", fontSize = 26.sp)
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Nuovo viaggio",
+                fontSize = 26.sp,
+                style = myTipography2.titleLarge
+            )
         }
 
         Box(
@@ -112,6 +129,19 @@ fun Plan() {
                         }
                     }
                 )
+                if (showStartModal) {
+                    DatePickerModal(
+                        onDateSelected = { selectedStartDate = it },
+                        onDismiss = { showStartModal = false }
+                    )
+                }
+
+                if (showEndModal) {
+                    DatePickerModal(
+                        onDateSelected = { selectedEndDate = it },
+                        onDismiss = { showEndModal = false }
+                    )
+                }
 
                 // Data fine (solo se viaggio di più giorni)
                 if (selectedTripType == TripType.MULTIDAY) {
@@ -132,14 +162,25 @@ fun Plan() {
                 // Bottone Salva
                 Button(
                     onClick = {
+                        val finalEndDate = if (selectedTripType == TripType.MULTIDAY) {
+                            selectedEndDate
+                        } else {
+                            selectedStartDate
+                        }
+
                         viewModel.addTrip(
                             Trip(
                                 destination = destination,
                                 tripType = selectedTripType,
                                 startDate = selectedStartDate,
-                                endDate = selectedEndDate
+                                endDate = finalEndDate
                             )
                         )
+
+                        destination = ""
+                        selectedStartDate = null
+                        selectedEndDate = null
+                        selectedTripType = TripType.LOCAL
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ciano),
                     modifier = Modifier
@@ -169,7 +210,7 @@ fun Plan() {
             verticalArrangement = Arrangement.spacedBy(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            Text(text="Viaggi programmati", fontSize = 26.sp)
+            Text(text="Viaggi programmati",style = myTipography2.titleLarge)
             trips.forEach {
                 Box(
                     modifier = Modifier
@@ -177,15 +218,51 @@ fun Plan() {
                         .border(
                             width = 2.dp,
                             color = blu,
-                            shape = RoundedCornerShape(12.dp) // angoli arrotondati
+                            shape = RoundedCornerShape(12.dp)
                         )
                         .padding(8.dp)
                 )
                 {
-                    Column {
-                        Text(text="${it.destination}", fontSize = 18.sp)
-                        Text(text="${it.startDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))} (${it.tripType.displayName})", fontSize = 12.sp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = it.destination,
+                                fontSize = 18.sp,
+                                style = myTipography2.titleLarge
+                            )
+                            Text(
+                                text = "${it.startDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))} - ${it.endDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
+                                fontSize = 12.sp,
+                                style = myTipography2.bodyLarge
+                            )
+                            Text(
+                                text = "(${it.tripType.displayName})",
+                                fontSize = 12.sp,
+                                style = myTipography2.bodyLarge
+                            )
+                        }
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Icona elimina",
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clickable {
+                                        viewModel.deleteTrip(it)
+                                    }
+                            )
+                        }
                     }
+
 
                 }
 
@@ -264,9 +341,11 @@ fun DropDownDemo(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "Tipologia: ")
+            Text(text = "Tipologia: ",
+                style = myTipography2.labelMedium)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = selectedItem.displayName)
+            Text(text = selectedItem.displayName,
+                style = myTipography2.bodyLarge)
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = "Icona dropdown",
@@ -281,7 +360,9 @@ fun DropDownDemo(
         ) {
             tripTypes.forEachIndexed { index, type ->
                 DropdownMenuItem(
-                    text = { Text(text = type.displayName) },
+                    text = { Text(
+                        text = type.displayName,
+                        style = myTipography2.bodyLarge,) },
                     onClick = {
                         onItemSelected(type)
                         isDropDownExpanded.value = false
