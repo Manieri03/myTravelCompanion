@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class TripViewModel(private val dao: TripDao) : ViewModel() {
 
@@ -28,5 +29,11 @@ class TripViewModel(private val dao: TripDao) : ViewModel() {
         viewModelScope.launch {
             dao.deleteTrip(trip)
         }
+    }
+
+    fun getCurrentTrip(trips: List<Trip>): Trip? {
+        val today = LocalDate.now()
+        return trips.find { it.startDate != null && it.endDate != null &&
+                today >= it.startDate && today <= it.endDate }
     }
 }
