@@ -8,7 +8,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-class TripViewModel(private val dao: TripDao) : ViewModel() {
+class TripViewModel(private val dao: TripDao,
+                    private val markerDao: MarkerDAO) : ViewModel() {
 
     var lastKnownLocation: LatLng? = null
     val trips = dao.getAllTrips()
@@ -36,5 +37,21 @@ class TripViewModel(private val dao: TripDao) : ViewModel() {
         val today = LocalDate.now()
         return trips.find { it.startDate != null && it.endDate != null &&
                 today >= it.startDate && today <= it.endDate }
+    }
+
+    suspend fun addMarker(tripId: Int, lat: Double, lng: Double, note: String?, photoPath: String?) {
+        val marker = Marker(tripId = tripId, latitude = lat, longitude = lng, note = note, photoPath = photoPath)
+        markerDao.insertMarker(marker)
+    }
+
+    suspend fun getMarkersForTrip(tripId: Int): List<Marker> {
+        return markerDao.getMarkersByTrip(tripId)
+    }
+
+    suspend fun deleteMarkersForTrip(tripId: Int) {
+        markerDao.deleteMarkersByTrip(tripId)
+    }
+    suspend fun deleteMarker(marker: Marker) {
+        markerDao.deleteMarker(marker)
     }
 }

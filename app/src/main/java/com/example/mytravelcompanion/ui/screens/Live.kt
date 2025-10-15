@@ -1,5 +1,6 @@
 package com.example.mytravelcompanion.ui.screens
 
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,13 +33,21 @@ import java.time.LocalDate
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.location.Location
 import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.compose.runtime.currentRecomposeScope
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.asImageBitmap
+import com.example.mytravelcompanion.data.MarkerDAO
+import com.example.mytravelcompanion.data.Trip
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -47,13 +56,17 @@ import com.google.android.gms.location.Priority
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
 @Composable
 fun Live() {
     val context = LocalContext.current
     val dao = AppDatabase.getDatabase(context).tripDao()
+    val markerDAO= AppDatabase.getDatabase(context).MarkerDAO()
     val tripViewModel: TripViewModel = viewModel(
-        factory = TripViewModelFactory(dao)
+        factory = TripViewModelFactory(dao, markerDAO)
     )
 
     val trips by tripViewModel.trips.collectAsState(initial = emptyList())
@@ -111,7 +124,7 @@ fun Live() {
                     .fillMaxWidth()
                     .height(400.dp)
                 ) {
-                    TripMap(tripViewModel = tripViewModel)
+                    TripMap(tripViewModel = tripViewModel,currentTrip=currentTrip)
                 }
             } else {
                 Text(
@@ -142,71 +155,264 @@ fun Live() {
 @Composable
 fun TripMap(
     tripViewModel: TripViewModel,
-    startLatLng: LatLng = LatLng(41.9028, 12.4964), // Roma di default
+    currentTrip: Trip? = null,
+    startLatLng: LatLng = LatLng(41.9028, 12.4964),
     zoom: Float = 15f
 ) {
     var userLocation by remember { mutableStateOf(tripViewModel.lastKnownLocation) }
+    var isUserInteracting by remember { mutableStateOf(false) }
+
+    val markers = remember { mutableStateListOf<com.example.mytravelcompanion.data.Marker>() }
+
+    // Dialog management
+    var selectedLatLng by remember { mutableStateOf<LatLng?>(null) }
+    var showMainDialog by remember { mutableStateOf(false) }
+    var showNoteDialog by remember { mutableStateOf(false) }
+    var currentNote by remember { mutableStateOf("") }
+    var currentPhotoPath by remember { mutableStateOf<String?>(null) }
+
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+
+    var selectedMarker by remember { mutableStateOf<com.example.mytravelcompanion.data.Marker?>(null) }
+    var showMarkerDialog by remember { mutableStateOf(false) }
+
+    // Camera / gallery launcher
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { currentPhotoPath = it.toString() }
+        showMainDialog = true // torna al dialog principale
+    }
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        bitmap?.let {
+            val file = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(file).use { out ->
+                it.compress(Bitmap.CompressFormat.JPEG, 100, out)
+            }
+            currentPhotoPath = file.absolutePath
+        }
+        showMainDialog = true
+    }
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(startLatLng, zoom)
     }
 
-    //aggiornamento posizione live
+    // Aggiornamento posizione utente
     LaunchedEffect(Unit) {
-        val locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            3000L // ogni 3 secondi
-        ).build()
-
-        val locationCallback = object : LocationCallback() {
+        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000L).build()
+        val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
-                val location: Location? = result.lastLocation
-                if (location != null) {
-                    val newLatLng = LatLng(location.latitude, location.longitude)
-                    userLocation = newLatLng
-                    tripViewModel.lastKnownLocation = newLatLng
-                    // Aggiorna la camera per seguire la posizione
+                val loc = result.lastLocation ?: return
+                val newLatLng = LatLng(loc.latitude, loc.longitude)
+                userLocation = newLatLng
+                tripViewModel.lastKnownLocation = newLatLng
+                if (!isUserInteracting)
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(newLatLng, 16f)
-                }
             }
         }
-
-        fusedLocationClient.requestLocationUpdates(
-            locationRequest,
-            locationCallback,
-            context.mainLooper
-        )
-
+        fusedLocationClient.requestLocationUpdates(request, callback, context.mainLooper)
         try {
-            //attivo finche composable in vita
             awaitCancellation()
         } finally {
-            // Quando il composable viene distrutto, ferma gli aggiornamenti GPS
-            fusedLocationClient.removeLocationUpdates(locationCallback)
+            fusedLocationClient.removeLocationUpdates(callback)
         }
     }
 
-    if (userLocation == null) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Recupero posizione...",
-                fontSize = 18.sp
+    // Carica marker dal DB
+    LaunchedEffect(currentTrip?.id) {
+        currentTrip?.let {
+            val fromDb = tripViewModel.getMarkersForTrip(it.id)
+            markers.clear()
+            markers.addAll(fromDb)
+        }
+    }
+
+    GoogleMap(
+        modifier = Modifier.fillMaxSize(),
+        cameraPositionState = cameraPositionState,
+        properties = MapProperties(isMyLocationEnabled = true),
+        uiSettings = MapUiSettings(
+            zoomControlsEnabled = true,
+            myLocationButtonEnabled = true
+        ),
+        onMapClick = { latLng ->
+            selectedLatLng = latLng
+            showMainDialog = true
+        }
+    ) {
+        markers.forEachIndexed { index, marker ->
+            Marker(
+                state = MarkerState(LatLng(marker.latitude, marker.longitude)),
+                title = "Ricordo #${index + 1}",
+                snippet = marker.note ?: "",
+                onClick = {
+                    selectedMarker = marker
+                    showMarkerDialog = true
+                    true
+                }
             )
         }
-    } else {
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = true),
-            uiSettings = MapUiSettings(
-                zoomControlsEnabled = true,
-                myLocationButtonEnabled = true
-            )
+    }
+
+    if (showMarkerDialog && selectedMarker != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {
+                showMarkerDialog = false
+                selectedMarker = null
+            },
+            title = { Text("Dettagli ricordo") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    selectedMarker?.note?.takeIf { it.isNotEmpty() }?.let { Text(it) }
+
+                    selectedMarker?.photoPath?.let { path ->
+                        val bitmap = try {
+                            if (path.startsWith("content://")) {
+                                val stream = context.contentResolver.openInputStream(android.net.Uri.parse(path))
+                                android.graphics.BitmapFactory.decodeStream(stream).also { stream?.close() }
+                            } else {
+                                android.graphics.BitmapFactory.decodeFile(path)
+                            }
+                        } catch (e: Exception) { null }
+
+                        bitmap?.let {
+                            Image(
+                                bitmap = it.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    coroutineScope.launch {
+                        selectedMarker?.let { m ->
+                            tripViewModel.deleteMarker(m)
+                            markers.remove(m)
+                        }
+                        selectedMarker = null
+                        showMarkerDialog = false
+                    }
+                }) { Text("Rimuovi marker") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showMarkerDialog = false
+                    selectedMarker = null
+                }) { Text("Chiudi") }
+            }
+        )
+    }
+
+    // Dialog principale di scelta
+    if (showMainDialog && selectedLatLng != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showMainDialog = false },
+            title = { Text("Aggiungi un ricordo") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (currentNote.isNotEmpty()) Text("Nota aggiunta")
+                    if (currentPhotoPath != null) Text("Foto aggiunta")
+                }
+            },
+            confirmButton = {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        androidx.compose.material3.TextButton(onClick = {
+                            showNoteDialog = true
+                            showMainDialog = false
+                        }) { Text("Nota") }
+
+                        androidx.compose.material3.TextButton(onClick = {
+                            showMainDialog = false
+                            pickImageLauncher.launch("image/*")
+                        }) { Text("Foto") }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.material3.TextButton(onClick = {
+                        // salva nel DB solo se c’è almeno una cosa
+                        currentTrip?.let { trip ->
+                            selectedLatLng?.let { latLng ->
+                                coroutineScope.launch {
+                                    tripViewModel.addMarker(
+                                        tripId = trip.id,
+                                        lat = latLng.latitude,
+                                        lng = latLng.longitude,
+                                        note = if (currentNote.isNotEmpty()) currentNote else null,
+                                        photoPath = currentPhotoPath
+                                    )
+                                    markers.add(
+                                        com.example.mytravelcompanion.data.Marker(
+                                            tripId = trip.id,
+                                            latitude = latLng.latitude,
+                                            longitude = latLng.longitude,
+                                            note = if (currentNote.isNotEmpty()) currentNote else null,
+                                            photoPath = currentPhotoPath
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                        // reset
+                        currentNote = ""
+                        currentPhotoPath = null
+                        selectedLatLng = null
+                        showMainDialog = false
+                    }) { Text("Fine") }
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showMainDialog = false
+                    currentNote = ""
+                    currentPhotoPath = null
+                    selectedLatLng = null
+                }) { Text("Annulla") }
+            }
+        )
+    }
+
+    // Dialog per scrivere la nota
+    if (showNoteDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showNoteDialog = false },
+            title = { Text("Scrivi una nota") },
+            text = {
+                androidx.compose.material3.TextField(
+                    value = currentNote,
+                    onValueChange = { currentNote = it },
+                    placeholder = { Text("Scrivi qui...") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showNoteDialog = false
+                    showMainDialog = true
+                }) { Text("Salva") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showNoteDialog = false
+                    showMainDialog = true
+                }) { Text("Annulla") }
+            }
         )
     }
 }
+

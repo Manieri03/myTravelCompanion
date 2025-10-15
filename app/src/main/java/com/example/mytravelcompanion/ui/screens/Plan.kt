@@ -43,7 +43,7 @@ import java.time.format.DateTimeFormatter
 fun Plan() {
     val context = LocalContext.current
     val db = remember { AppDatabase.getDatabase(context) }
-    val factory = remember { TripViewModelFactory(db.tripDao()) }
+    val factory = remember { TripViewModelFactory(db.tripDao(), db.MarkerDAO()) }
     val viewModel: TripViewModel = viewModel(factory = factory)
     val trips by viewModel.trips.collectAsState(initial = emptyList())
 
