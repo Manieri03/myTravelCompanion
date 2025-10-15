@@ -2,6 +2,7 @@ package com.example.mytravelcompanion.data
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -9,7 +10,7 @@ import java.time.LocalDate
 
 class TripViewModel(private val dao: TripDao) : ViewModel() {
 
-    // Flusso reattivo di tutti i viaggi nel DB
+    var lastKnownLocation: LatLng? = null
     val trips = dao.getAllTrips()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

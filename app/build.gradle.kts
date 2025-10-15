@@ -1,9 +1,20 @@
+import java.util.Properties // <--- Import Properties to resolve 'util' and 'load'
+
+val localProperties = rootProject.file("local.properties")
+val properties = Properties().apply {
+    if (localProperties.exists()) {
+        localProperties.inputStream().use { load(it) }
+    }
+}
+val mapsApiKey = properties.getProperty("MAPS_API_KEY") ?: ""
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("kotlin-kapt")
 }
+
 
 android {
     namespace = "com.example.mytravelcompanion"
@@ -17,6 +28,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        resValue("string", "google_maps_key", mapsApiKey)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,6 +56,13 @@ android {
 }
 
 dependencies {
+    //map compose
+    implementation("com.google.maps.android:maps-compose:2.14.0")
+
+    //maps
+    implementation("com.google.android.gms:play-services-maps:18.1.0")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
     implementation("androidx.room:room-runtime:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
