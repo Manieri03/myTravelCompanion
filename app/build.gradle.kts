@@ -1,4 +1,4 @@
-import java.util.Properties // <--- Import Properties to resolve 'util' and 'load'
+import java.util.Properties
 
 val localProperties = rootProject.file("local.properties")
 val properties = Properties().apply {
