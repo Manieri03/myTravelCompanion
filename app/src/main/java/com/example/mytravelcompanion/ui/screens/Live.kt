@@ -80,8 +80,9 @@ fun Live() {
     val context = LocalContext.current
     val dao = AppDatabase.getDatabase(context).tripDao()
     val markerDAO= AppDatabase.getDatabase(context).MarkerDAO()
+    val journeyDAO= AppDatabase.getDatabase(context).JourneyDAO()
     val tripViewModel: TripViewModel = viewModel(
-        factory = TripViewModelFactory(dao, markerDAO)
+        factory = TripViewModelFactory(dao, markerDAO, journeyDAO)
     )
 
     val trips by tripViewModel.trips.collectAsState(initial = emptyList())
@@ -94,6 +95,8 @@ fun Live() {
     val hasLocationPermission = ContextCompat.checkSelfPermission(
         context, Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
+
+    var isJourneyActive by remember { mutableStateOf(false) }
 
     // Se non concesso, lo chiediamo
     LaunchedEffect(Unit) {
@@ -146,55 +149,19 @@ fun Live() {
                             .fillMaxWidth()
                             .weight(1f)
                     ) {
-                        TripMap(tripViewModel = tripViewModel, currentTrip = currentTrip)
+                        TripMap(tripViewModel = tripViewModel, currentTrip = currentTrip,isJourneyActive = isJourneyActive)
                     }
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = { /* */ },
-                            colors = ButtonDefaults.buttonColors(containerColor = ciano),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = "Start"
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "Inizia",
-                                    fontSize = 16.sp,
-                                    style = myTipography2.bodyLarge
-                                )
-                            }
+                    Button(onClick = {
+                        if (!isJourneyActive) {
+                            currentTrip?.id?.toLong()?.let { tripViewModel.startJourney(it) }
+                            isJourneyActive = true
+                        } else {
+                            tripViewModel.stopJourney()
+                            isJourneyActive = false
                         }
-
-                        Button(
-                            onClick = { /* */ },
-                            colors = ButtonDefaults.buttonColors(containerColor = ciano),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Stop"
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "Stop",
-                                    fontSize = 16.sp,
-                                    style = myTipography2.bodyLarge
-                                )
-                            }
-                        }
+                    }) {
+                        Text(if (!isJourneyActive) "Inizia percorso" else "Stop percorso")
                     }
                 }
             } else {
@@ -229,7 +196,8 @@ fun TripMap(
     tripViewModel: TripViewModel,
     currentTrip: Trip? = null,
     startLatLng: LatLng = LatLng(41.9028, 12.4964),
-    zoom: Float = 15f
+    zoom: Float = 15f,
+    isJourneyActive:Boolean
 ) {
     var userLocation by remember { mutableStateOf(tripViewModel.lastKnownLocation) }
     var isUserInteracting by remember { mutableStateOf(false) }
@@ -250,6 +218,7 @@ fun TripMap(
 
     var selectedMarker by remember { mutableStateOf<com.example.mytravelcompanion.data.Marker?>(null) }
     var showMarkerDialog by remember { mutableStateOf(false) }
+
 
     // Camera / gallery launcher
     val pickImageLauncher = rememberLauncherForActivityResult(
@@ -296,6 +265,9 @@ fun TripMap(
                 tripViewModel.lastKnownLocation = newLatLng
                 if (!isUserInteracting)
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(newLatLng, 16f)
+                if (isJourneyActive) {
+                    tripViewModel.updateJourneyLocation(loc.latitude, loc.longitude)
+                }
             }
         }
         fusedLocationClient.requestLocationUpdates(request, callback, context.mainLooper)
@@ -335,6 +307,14 @@ fun TripMap(
             showMainDialog = true
         }
     ) {
+        val journeyPoints by tripViewModel.journeyPoints.collectAsState()
+        if (journeyPoints.isNotEmpty()) {
+            com.google.maps.android.compose.Polyline(
+                points = journeyPoints,
+                color = androidx.compose.ui.graphics.Color.Blue,
+                width = 6f
+            )
+        }
         markers.forEachIndexed { index, marker ->
             Marker(
                 state = MarkerState(LatLng(marker.latitude, marker.longitude)),

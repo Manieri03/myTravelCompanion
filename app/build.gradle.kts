@@ -56,6 +56,7 @@ android {
 }
 
 dependencies {
+    implementation("com.google.code.gson:gson:2.10.1")
     //map compose
     implementation("com.google.maps.android:maps-compose:2.14.0")
 
