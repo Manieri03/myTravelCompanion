@@ -39,6 +39,15 @@ import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +57,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.asImageBitmap
 import com.example.mytravelcompanion.data.MarkerDAO
 import com.example.mytravelcompanion.data.Trip
+import com.example.mytravelcompanion.data.TripType
+import com.example.mytravelcompanion.ui.theme.blu
+import com.example.mytravelcompanion.ui.theme.ciano
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -120,11 +132,67 @@ fun Live() {
         // Mostra la mappa solo se c'è un viaggio e se il permesso è concesso
         if (currentTrip != null) {
             if (hasLocationPermission) {
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .height(400.dp)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(480.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    TripMap(tripViewModel = tripViewModel,currentTrip=currentTrip)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
+                        TripMap(tripViewModel = tripViewModel, currentTrip = currentTrip)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = { /* */ },
+                            colors = ButtonDefaults.buttonColors(containerColor = ciano),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Start"
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Inizia",
+                                    fontSize = 16.sp,
+                                    style = myTipography2.bodyLarge
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = { /* */ },
+                            colors = ButtonDefaults.buttonColors(containerColor = ciano),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Stop"
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Stop",
+                                    fontSize = 16.sp,
+                                    style = myTipography2.bodyLarge
+                                )
+                            }
+                        }
+                    }
                 }
             } else {
                 Text(
@@ -133,7 +201,8 @@ fun Live() {
                     fontSize = 18.sp
                 )
             }
-        } else {
+        }
+         else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
@@ -183,15 +252,24 @@ fun TripMap(
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let { currentPhotoPath = it.toString() }
-        showMainDialog = true // torna al dialog principale
+        uri?.let {
+            val inputStream = context.contentResolver.openInputStream(it)
+            val file = File(context.filesDir, "photo_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(file).use { output ->
+                inputStream?.copyTo(output)
+            }
+            inputStream?.close()
+
+            currentPhotoPath = file.absolutePath
+        }
+        showMainDialog = true
     }
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         bitmap?.let {
-            val file = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+            val file = File(context.filesDir, "photo_${System.currentTimeMillis()}.jpg")
             FileOutputStream(file).use { out ->
                 it.compress(Bitmap.CompressFormat.JPEG, 100, out)
             }
@@ -235,7 +313,14 @@ fun TripMap(
     }
 
     GoogleMap(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .border(
+                width = 2.dp,
+                color = blu,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clip(RoundedCornerShape(12.dp)),
         cameraPositionState = cameraPositionState,
         properties = MapProperties(isMyLocationEnabled = true),
         uiSettings = MapUiSettings(
@@ -267,10 +352,10 @@ fun TripMap(
                 showMarkerDialog = false
                 selectedMarker = null
             },
-            title = { Text("Dettagli ricordo") },
+            title = { Text("Dettagli ricordo", style = myTipography2.titleLarge) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    selectedMarker?.note?.takeIf { it.isNotEmpty() }?.let { Text(it) }
+                    selectedMarker?.note?.takeIf { it.isNotEmpty() }?.let { Text(it, style = myTipography2.bodyLarge) }
 
                     selectedMarker?.photoPath?.let { path ->
                         val bitmap = try {
@@ -304,13 +389,13 @@ fun TripMap(
                         selectedMarker = null
                         showMarkerDialog = false
                     }
-                }) { Text("Rimuovi marker") }
+                }) { Text("Rimuovi marker", style = myTipography2.bodyLarge) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     showMarkerDialog = false
                     selectedMarker = null
-                }) { Text("Chiudi") }
+                }) { Text("Chiudi", style = myTipography2.bodyLarge) }
             }
         )
     }
@@ -319,11 +404,11 @@ fun TripMap(
     if (showMainDialog && selectedLatLng != null) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showMainDialog = false },
-            title = { Text("Aggiungi un ricordo") },
+            title = { Text("Aggiungi un ricordo", style = myTipography2.titleLarge) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (currentNote.isNotEmpty()) Text("Nota aggiunta")
-                    if (currentPhotoPath != null) Text("Foto aggiunta")
+                    if (currentNote.isNotEmpty()) Text("Nota aggiunta", style = myTipography2.bodyLarge)
+                    if (currentPhotoPath != null) Text("Foto aggiunta", style = myTipography2.bodyLarge)
                 }
             },
             confirmButton = {
@@ -335,45 +420,45 @@ fun TripMap(
                         androidx.compose.material3.TextButton(onClick = {
                             showNoteDialog = true
                             showMainDialog = false
-                        }) { Text("Nota") }
+                        }) { Text("Nota", style = myTipography2.bodyLarge) }
 
                         androidx.compose.material3.TextButton(onClick = {
                             showMainDialog = false
                             pickImageLauncher.launch("image/*")
-                        }) { Text("Foto") }
+                        }) { Text("Foto", style = myTipography2.bodyLarge) }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
                     androidx.compose.material3.TextButton(onClick = {
-                        // salva nel DB solo se c’è almeno una cosa
+                        //Copia dei valori
+                        val noteToSave = if (currentNote.isNotEmpty()) currentNote else null
+                        val photoToSave = currentPhotoPath
+                        val latLngToSave = selectedLatLng
+
                         currentTrip?.let { trip ->
-                            selectedLatLng?.let { latLng ->
+                            latLngToSave?.let { latLng ->
                                 coroutineScope.launch {
                                     tripViewModel.addMarker(
                                         tripId = trip.id,
                                         lat = latLng.latitude,
                                         lng = latLng.longitude,
-                                        note = if (currentNote.isNotEmpty()) currentNote else null,
-                                        photoPath = currentPhotoPath
+                                        note = noteToSave,
+                                        photoPath = photoToSave
                                     )
-                                    markers.add(
-                                        com.example.mytravelcompanion.data.Marker(
-                                            tripId = trip.id,
-                                            latitude = latLng.latitude,
-                                            longitude = latLng.longitude,
-                                            note = if (currentNote.isNotEmpty()) currentNote else null,
-                                            photoPath = currentPhotoPath
-                                        )
-                                    )
+
+                                    val updatedMarkers = tripViewModel.getMarkersForTrip(trip.id)
+                                    markers.clear()
+                                    markers.addAll(updatedMarkers)
                                 }
                             }
                         }
-                        // reset
+
+                        // reset stati
                         currentNote = ""
                         currentPhotoPath = null
                         selectedLatLng = null
                         showMainDialog = false
-                    }) { Text("Fine") }
+                    }) { Text("Fine", style = myTipography2.labelMedium) }
                 }
             },
             dismissButton = {
@@ -382,7 +467,7 @@ fun TripMap(
                     currentNote = ""
                     currentPhotoPath = null
                     selectedLatLng = null
-                }) { Text("Annulla") }
+                }) { Text("Annulla", style = myTipography2.bodyLarge) }
             }
         )
     }
@@ -391,26 +476,27 @@ fun TripMap(
     if (showNoteDialog) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showNoteDialog = false },
-            title = { Text("Scrivi una nota") },
+            title = { Text("Scrivi una nota", style = myTipography2.labelMedium) },
             text = {
                 androidx.compose.material3.TextField(
                     value = currentNote,
                     onValueChange = { currentNote = it },
-                    placeholder = { Text("Scrivi qui...") },
-                    modifier = Modifier.fillMaxWidth()
+                    placeholder = { Text("Scrivi qui...", style = myTipography2.bodyLarge) },
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = myTipography2.bodyLarge
                 )
             },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     showNoteDialog = false
                     showMainDialog = true
-                }) { Text("Salva") }
+                }) { Text("Salva", style = myTipography2.labelMedium) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     showNoteDialog = false
                     showMainDialog = true
-                }) { Text("Annulla") }
+                }) { Text("Annulla", style = myTipography2.bodyLarge) }
             }
         )
     }

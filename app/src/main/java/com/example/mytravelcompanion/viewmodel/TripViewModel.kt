@@ -41,11 +41,17 @@ class TripViewModel(private val dao: TripDao,
 
     suspend fun addMarker(tripId: Int, lat: Double, lng: Double, note: String?, photoPath: String?) {
         val marker = Marker(tripId = tripId, latitude = lat, longitude = lng, note = note, photoPath = photoPath)
+        android.util.Log.d("TripVM", "SALVO marker -> note=$note, photo=$photoPath")
         markerDao.insertMarker(marker)
     }
 
     suspend fun getMarkersForTrip(tripId: Int): List<Marker> {
-        return markerDao.getMarkersByTrip(tripId)
+        val list = markerDao.getMarkersByTrip(tripId)
+        android.util.Log.d("TripVM", "LETTI marker dal DB: ${list.size}")
+        list.forEach {
+            android.util.Log.d("TripVM", " -> id=${it.id}, note=${it.note}, photo=${it.photoPath}")
+        }
+        return list
     }
 
     suspend fun deleteMarkersForTrip(tripId: Int) {
