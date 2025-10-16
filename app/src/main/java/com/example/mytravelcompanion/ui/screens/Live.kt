@@ -71,7 +71,6 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
-import org.intellij.lang.annotations.JdkConstants
 import java.io.File
 import java.io.FileOutputStream
 
@@ -142,7 +141,8 @@ fun Live() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(480.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
                         modifier = Modifier
@@ -160,8 +160,9 @@ fun Live() {
                             tripViewModel.stopJourney()
                             isJourneyActive = false
                         }
-                    }) {
-                        Text(if (!isJourneyActive) "Inizia percorso" else "Stop percorso")
+                    }, colors = ButtonDefaults.buttonColors(containerColor = ciano)
+                    ) {
+                        Text(if (!isJourneyActive) "Inizia percorso" else "Stop percorso", style = myTipography2.bodyLarge)
                     }
                 }
             } else {
