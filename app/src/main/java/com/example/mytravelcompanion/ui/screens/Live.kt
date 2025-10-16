@@ -41,8 +41,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,6 +71,7 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
+import org.intellij.lang.annotations.JdkConstants
 import java.io.File
 import java.io.FileOutputStream
 
@@ -406,9 +409,16 @@ fun TripMap(
             onDismissRequest = { showMainDialog = false },
             title = { Text("Aggiungi un ricordo", style = myTipography2.titleLarge) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (currentNote.isNotEmpty()) Text("Nota aggiunta", style = myTipography2.bodyLarge)
-                    if (currentPhotoPath != null) Text("Foto aggiunta", style = myTipography2.bodyLarge)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (currentPhotoPath !=null || currentNote.isNotEmpty())
+                        Text("Clicca di nuovo sui bottoni per cambiare", style= myTipography2.labelMedium)
+                    if (currentNote.isNotEmpty()) Text("Hai inserito una nota", style = myTipography2.bodyLarge)
+                    if (currentPhotoPath != null) Text("Hai inserito una foto", style = myTipography2.bodyLarge)
+
                 }
             },
             confirmButton = {
@@ -420,54 +430,105 @@ fun TripMap(
                         androidx.compose.material3.TextButton(onClick = {
                             showNoteDialog = true
                             showMainDialog = false
-                        }) { Text("Nota", style = myTipography2.bodyLarge) }
+                        }) {
+                            Column (
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .border(
+                                        width = 3.dp,
+                                        color = blu,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ){
+                                Text("Nota", style = myTipography2.bodyLarge)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "note"
+                                )
+                            }
+
+                        }
 
                         androidx.compose.material3.TextButton(onClick = {
                             showMainDialog = false
                             pickImageLauncher.launch("image/*")
-                        }) { Text("Foto", style = myTipography2.bodyLarge) }
+                        }) {
+                            Column (
+                                modifier = Modifier
+                                .padding(16.dp)
+                                .border(
+                                    width = 3.dp,
+                                    color = blu,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ){
+                                Text("Foto", style = myTipography2.bodyLarge)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Icon(
+                                    imageVector = Icons.Default.AccountBox,
+                                    contentDescription = "photo"
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    androidx.compose.material3.TextButton(onClick = {
-                        //Copia dei valori
-                        val noteToSave = if (currentNote.isNotEmpty()) currentNote else null
-                        val photoToSave = currentPhotoPath
-                        val latLngToSave = selectedLatLng
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        androidx.compose.material3.TextButton(onClick = {
+                            //Copia dei valori
+                            val noteToSave = if (currentNote.isNotEmpty()) currentNote else null
+                            val photoToSave = currentPhotoPath
+                            val latLngToSave = selectedLatLng
 
-                        currentTrip?.let { trip ->
-                            latLngToSave?.let { latLng ->
-                                coroutineScope.launch {
-                                    tripViewModel.addMarker(
-                                        tripId = trip.id,
-                                        lat = latLng.latitude,
-                                        lng = latLng.longitude,
-                                        note = noteToSave,
-                                        photoPath = photoToSave
-                                    )
+                            currentTrip?.let { trip ->
+                                latLngToSave?.let { latLng ->
+                                    coroutineScope.launch {
+                                        tripViewModel.addMarker(
+                                            tripId = trip.id,
+                                            lat = latLng.latitude,
+                                            lng = latLng.longitude,
+                                            note = noteToSave,
+                                            photoPath = photoToSave
+                                        )
 
-                                    val updatedMarkers = tripViewModel.getMarkersForTrip(trip.id)
-                                    markers.clear()
-                                    markers.addAll(updatedMarkers)
+                                        val updatedMarkers =
+                                            tripViewModel.getMarkersForTrip(trip.id)
+                                        markers.clear()
+                                        markers.addAll(updatedMarkers)
+                                    }
                                 }
                             }
-                        }
 
-                        // reset stati
-                        currentNote = ""
-                        currentPhotoPath = null
-                        selectedLatLng = null
-                        showMainDialog = false
-                    }) { Text("Fine", style = myTipography2.labelMedium) }
+                            // reset stati
+                            currentNote = ""
+                            currentPhotoPath = null
+                            selectedLatLng = null
+                            showMainDialog = false
+                        }) { Text("Fine", style = myTipography2.bodyLarge) }
+
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                showMainDialog = false
+                                currentNote = ""
+                                currentPhotoPath = null
+                                selectedLatLng = null
+                            }) { Text("Annulla", style = myTipography2.bodyLarge) }
+                    }
                 }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    showMainDialog = false
-                    currentNote = ""
-                    currentPhotoPath = null
-                    selectedLatLng = null
-                }) { Text("Annulla", style = myTipography2.bodyLarge) }
             }
         )
     }
