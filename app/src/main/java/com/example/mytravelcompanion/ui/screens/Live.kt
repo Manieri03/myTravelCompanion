@@ -150,7 +150,7 @@ fun Live() {
                             .fillMaxWidth()
                             .weight(1f)
                     ) {
-                        TripMap(tripViewModel = tripViewModel, currentTrip = currentTrip,isJourneyActive = isJourneyActive)
+                        TripMap(tripViewModel = tripViewModel, currentTrip = currentTrip,isJourneyActive = isJourneyActive,tripId = currentTrip.id.toLong(),)
                     }
 
                     Button(onClick = {
@@ -197,6 +197,7 @@ fun TripMap(
     currentTrip: Trip? = null,
     startLatLng: LatLng = LatLng(41.9028, 12.4964),
     zoom: Float = 15f,
+    tripId: Long,
     isJourneyActive:Boolean
 ) {
     var userLocation by remember { mutableStateOf(tripViewModel.lastKnownLocation) }
@@ -255,7 +256,7 @@ fun TripMap(
     }
 
     // Aggiornamento posizione utente
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isJourneyActive) {
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000L).build()
         val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
@@ -264,11 +265,14 @@ fun TripMap(
                 userLocation = newLatLng
                 tripViewModel.lastKnownLocation = newLatLng
 
+                android.util.Log.d("TripMap", "Nuova posizione ricevuta: ${loc.latitude}, ${loc.longitude}")
+
                 if (!isUserInteracting) {
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(newLatLng, 16f)
                 }
 
                 if (isJourneyActive) {
+                    android.util.Log.d("TripMap", "Invio posizione al ViewModel per il percorso attivo")
                     tripViewModel.updateJourneyLocation(loc.latitude, loc.longitude)
                 } else {
                     android.util.Log.d("TripMap", "Journey NON attivo")
@@ -314,11 +318,14 @@ fun TripMap(
     ) {
         val journeyPoints by tripViewModel.journeyPoints.collectAsState()
         if (journeyPoints.isNotEmpty()) {
+            android.util.Log.d("TripMap", "Disegno Polyline con ${journeyPoints.size} punti")
             com.google.maps.android.compose.Polyline(
                 points = journeyPoints,
-                color = androidx.compose.ui.graphics.Color.Blue,
+                color = ciano,
                 width = 6f
             )
+        } else {
+            android.util.Log.d("TripMap", "Nessun punto nel percorso: Polyline non disegnata")
         }
         markers.forEachIndexed { index, marker ->
             Marker(
