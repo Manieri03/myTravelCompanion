@@ -338,27 +338,49 @@ fun TripMap(
             },
             title = { Text("Dettagli ricordo", style = myTipography2.titleLarge) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    selectedMarker?.note?.takeIf { it.isNotEmpty() }?.let { Text(it, style = myTipography2.bodyLarge) }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val note = selectedMarker?.note
+                    val photoPath = selectedMarker?.photoPath
 
-                    selectedMarker?.photoPath?.let { path ->
-                        val bitmap = try {
-                            if (path.startsWith("content://")) {
-                                val stream = context.contentResolver.openInputStream(android.net.Uri.parse(path))
-                                android.graphics.BitmapFactory.decodeStream(stream).also { stream?.close() }
-                            } else {
-                                android.graphics.BitmapFactory.decodeFile(path)
+                    if (note.isNullOrEmpty() && photoPath.isNullOrEmpty()) {
+                        Text(
+                            text = "Non ci sono note e/o foto associati a questo ricordo.",
+                            style = myTipography2.bodyLarge,
+                            color = ciano
+                        )
+                    } else {
+                        note?.takeIf { it.isNotEmpty() }?.let {
+                            Text(it, style = myTipography2.bodyLarge)
+                        }
+
+                        photoPath?.let { path ->
+                            val bitmap = try {
+                                if (path.startsWith("content://")) {
+                                    val stream = context.contentResolver.openInputStream(android.net.Uri.parse(path))
+                                    android.graphics.BitmapFactory.decodeStream(stream).also { stream?.close() }
+                                } else {
+                                    android.graphics.BitmapFactory.decodeFile(path)
+                                }
+                            } catch (e: Exception) { null }
+
+                            bitmap?.let {
+                                Image(
+                                    bitmap = it.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                        .border(
+                                            width = 2.dp,
+                                            color = ciano,
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
+                                        .clip(RoundedCornerShape(16.dp))
+                                )
                             }
-                        } catch (e: Exception) { null }
-
-                        bitmap?.let {
-                            Image(
-                                bitmap = it.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                            )
                         }
                     }
                 }
@@ -373,13 +395,13 @@ fun TripMap(
                         selectedMarker = null
                         showMarkerDialog = false
                     }
-                }) { Text("Rimuovi marker", style = myTipography2.bodyLarge) }
+                }) { Text("Rimuovi marker", style = myTipography2.bodyLarge, color=ciano) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     showMarkerDialog = false
                     selectedMarker = null
-                }) { Text("Chiudi", style = myTipography2.bodyLarge) }
+                }) { Text("Chiudi", style = myTipography2.bodyLarge, color=ciano) }
             }
         )
     }
@@ -417,18 +439,19 @@ fun TripMap(
                                     .padding(16.dp)
                                     .border(
                                         width = 3.dp,
-                                        color = blu,
+                                        color = ciano,
                                         shape = RoundedCornerShape(12.dp)
                                     )
                                     .padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ){
-                                Text("Nota", style = myTipography2.bodyLarge)
+                                Text("Nota", style = myTipography2.bodyLarge, color=ciano)
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Icon(
                                     imageVector = Icons.Default.Edit,
-                                    contentDescription = "note"
+                                    contentDescription = "note",
+                                    tint=ciano
                                 )
                             }
 
@@ -443,18 +466,19 @@ fun TripMap(
                                 .padding(16.dp)
                                 .border(
                                     width = 3.dp,
-                                    color = blu,
+                                    color = ciano,
                                     shape = RoundedCornerShape(12.dp)
                                 )
                                 .padding(16.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ){
-                                Text("Foto", style = myTipography2.bodyLarge)
+                                Text("Foto", style = myTipography2.bodyLarge,color = ciano)
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Icon(
                                     imageVector = Icons.Default.AccountBox,
-                                    contentDescription = "photo"
+                                    contentDescription = "photo",
+                                    tint=ciano
                                 )
                             }
                         }
@@ -497,7 +521,7 @@ fun TripMap(
                             currentPhotoPath = null
                             selectedLatLng = null
                             showMainDialog = false
-                        }) { Text("Fine", style = myTipography2.bodyLarge) }
+                        }) { Text("Fine", style = myTipography2.bodyLarge, color=ciano) }
 
                         androidx.compose.material3.TextButton(
                             onClick = {
@@ -505,7 +529,7 @@ fun TripMap(
                                 currentNote = ""
                                 currentPhotoPath = null
                                 selectedLatLng = null
-                            }) { Text("Annulla", style = myTipography2.bodyLarge) }
+                            }) { Text("Annulla", style = myTipography2.bodyLarge, color=ciano) }
                     }
                 }
             },
@@ -532,13 +556,13 @@ fun TripMap(
                 androidx.compose.material3.TextButton(onClick = {
                     showNoteDialog = false
                     showMainDialog = true
-                }) { Text("Salva", style = myTipography2.labelMedium) }
+                }) { Text("Salva", style = myTipography2.labelMedium, color=ciano) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     showNoteDialog = false
                     showMainDialog = true
-                }) { Text("Annulla", style = myTipography2.bodyLarge) }
+                }) { Text("Annulla", style = myTipography2.bodyLarge, color=ciano) }
             }
         )
     }
