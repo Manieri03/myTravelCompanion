@@ -32,6 +32,10 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import java.time.LocalDate
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.location.Location
@@ -50,6 +54,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +65,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import com.example.mytravelcompanion.data.MarkerDAO
 import com.example.mytravelcompanion.data.Trip
 import com.example.mytravelcompanion.data.TripType
+import com.example.mytravelcompanion.service.JourneyService
 import com.example.mytravelcompanion.ui.theme.blu
 import com.example.mytravelcompanion.ui.theme.ciano
 import com.google.android.gms.location.LocationCallback
@@ -88,6 +94,7 @@ fun Live() {
     val currentTrip = tripViewModel.getCurrentTrip(trips)
 
     val isJourneyActive by tripViewModel.isJourneyActive.collectAsState()
+    val serviceIntent = Intent(context, JourneyService::class.java)
 
     val launcher = rememberLauncherForActivityResult(RequestPermission()) { isGranted: Boolean ->
         //
@@ -150,14 +157,29 @@ fun Live() {
                             .fillMaxWidth()
                             .weight(1f)
                     ) {
-                        TripMap(tripViewModel = tripViewModel, currentTrip = currentTrip,isJourneyActive = isJourneyActive,tripId = currentTrip.id.toLong(),)
+                        TripMap(
+                            tripViewModel = tripViewModel,
+                            currentTrip = currentTrip,
+                            isJourneyActive = isJourneyActive,
+                            tripId = currentTrip.id.toLong()
+                        )
                     }
 
                     Button(onClick = {
                         if (!isJourneyActive) {
-                            currentTrip.id.toLong().let { tripViewModel.startJourney(it) }
+                            if (hasLocationPermission) {
+                                // Avvio percorso e service
+                                currentTrip.id.toLong().let { tripViewModel.startJourney(it) }
+                                serviceIntent.putExtra("tripId", currentTrip.id)
+                                ContextCompat.startForegroundService(context, serviceIntent)
+                            } else {
+                                // Richiedi permesso
+                                launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            }
                         } else {
+                            // Ferma percorso e poi service
                             tripViewModel.stopJourney()
+                            context.stopService(serviceIntent)
                         }
                     }, colors = ButtonDefaults.buttonColors(containerColor = ciano)
                     ) {
@@ -195,13 +217,11 @@ fun Live() {
 fun TripMap(
     tripViewModel: TripViewModel,
     currentTrip: Trip? = null,
-    startLatLng: LatLng = LatLng(41.9028, 12.4964),
     zoom: Float = 15f,
     tripId: Long,
     isJourneyActive:Boolean
 ) {
     var userLocation by remember { mutableStateOf(tripViewModel.lastKnownLocation) }
-    var isUserInteracting by remember { mutableStateOf(false) }
 
     val markers = remember { mutableStateListOf<com.example.mytravelcompanion.data.Marker>() }
 
@@ -219,6 +239,33 @@ fun TripMap(
 
     var selectedMarker by remember { mutableStateOf<com.example.mytravelcompanion.data.Marker?>(null) }
     var showMarkerDialog by remember { mutableStateOf(false) }
+
+    var startLatLng by remember { mutableStateOf<LatLng?>(null) }
+    val journeyPoints by tripViewModel.journeyPoints.collectAsState()
+
+    // Recupera la posizione attuale al primo avvio
+    LaunchedEffect(Unit) {
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            location?.let {
+                startLatLng = LatLng(it.latitude, it.longitude)
+                tripViewModel.lastKnownLocation = startLatLng // opzionale, se vuoi mantenerla nel ViewModel
+                android.util.Log.d("TripMap", "Posizione iniziale: ${it.latitude}, ${it.longitude}")
+            }
+        }
+    }
+    if (startLatLng == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Recupero posizione iniziale...", style = myTipography2.bodyLarge)
+        }
+        return
+    }
+
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(startLatLng!!, zoom)
+    }
 
 
     // Camera / gallery launcher
@@ -251,10 +298,6 @@ fun TripMap(
         showMainDialog = true
     }
 
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(startLatLng, zoom)
-    }
-
     // Aggiornamento posizione utente
     LaunchedEffect(isJourneyActive) {
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000L).build()
@@ -266,10 +309,6 @@ fun TripMap(
                 tripViewModel.lastKnownLocation = newLatLng
 
                 android.util.Log.d("TripMap", "Nuova posizione ricevuta: ${loc.latitude}, ${loc.longitude}")
-
-                if (!isUserInteracting) {
-                    cameraPositionState.position = CameraPosition.fromLatLngZoom(newLatLng, 16f)
-                }
 
                 if (isJourneyActive) {
                     android.util.Log.d("TripMap", "Invio posizione al ViewModel per il percorso attivo")
@@ -284,6 +323,32 @@ fun TripMap(
             awaitCancellation()
         } finally {
             fusedLocationClient.removeLocationUpdates(callback)
+        }
+    }
+
+
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                intent?.let {
+                    val lat = it.getDoubleExtra("lat", 0.0)
+                    val lng = it.getDoubleExtra("lng", 0.0)
+                    if (lat != 0.0 && lng != 0.0) {
+                        tripViewModel.updateJourneyLocation(lat, lng)
+                    }
+                }
+            }
+        }
+        val filter = IntentFilter("LOCATION_UPDATE")
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+
+        onDispose {
+            context.unregisterReceiver(receiver)
         }
     }
 
