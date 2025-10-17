@@ -382,16 +382,27 @@ fun TripMap(
         }
     ) {
         val journeyPoints by tripViewModel.journeyPoints.collectAsState()
+        val alljourneyPoints by tripViewModel.allJourneyPoints.collectAsState()
+        for (path in alljourneyPoints) {
+            if (path.isNotEmpty()) {
+                com.google.maps.android.compose.Polyline(
+                    points = path,
+                    color = ciano.copy(alpha = 0.5f),
+                    width = 4f
+                )
+            } else {
+                android.util.Log.d("TripMap", "Nessun punto nel percorso: Polyline non disegnata")
+            }
+        }
+
         if (journeyPoints.isNotEmpty()) {
-            android.util.Log.d("TripMap", "Disegno Polyline con ${journeyPoints.size} punti")
             com.google.maps.android.compose.Polyline(
                 points = journeyPoints,
                 color = ciano,
                 width = 6f
             )
-        } else {
-            android.util.Log.d("TripMap", "Nessun punto nel percorso: Polyline non disegnata")
         }
+
         markers.forEachIndexed { index, marker ->
             Marker(
                 state = MarkerState(LatLng(marker.latitude, marker.longitude)),

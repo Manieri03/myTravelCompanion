@@ -27,6 +27,9 @@ class TripViewModel(private val dao: TripDao,
     private var _isJourneyActive = MutableStateFlow(false)
     val isJourneyActive: StateFlow<Boolean> get() = _isJourneyActive
 
+    private var _allJourneyPoints = MutableStateFlow<List<List<LatLng>>>(emptyList())
+    val allJourneyPoints: StateFlow<List<List<LatLng>>> get() = _allJourneyPoints
+
     fun addTrip(trip: Trip) {
         viewModelScope.launch {
             dao.insertTrip(trip)
@@ -75,13 +78,29 @@ class TripViewModel(private val dao: TripDao,
 
 
     fun startJourney(tripId: Long) = viewModelScope.launch {
+        _currentJourney.value?.let { current ->
+            // salva nel DB
+            val json = Gson().toJson(_journeyPoints.value.map {
+                LatLngSerializable(it.latitude, it.longitude)
+            })
+            journeyDao.updatePath(current.id, json)
+            journeyDao.updateEndTime(current.id, System.currentTimeMillis())
+            android.util.Log.d("TripVM", "Journey precedente salvato (id=${current.id})")
+
+            // salva nella lista di tutti i journey per mostrarli sulla mappa
+            _allJourneyPoints.value = _allJourneyPoints.value + listOf(_journeyPoints.value)
+        }
+
+        // nuovo journey
         val journey = Journey(tripId = tripId, start = System.currentTimeMillis())
         val id = journeyDao.insertJourney(journey)
         _currentJourney.value = journey.copy(id = id)
-        _journeyPoints.value = emptyList()
+        _journeyPoints.value = emptyList() // nuovo journey inizia da zero
         _isJourneyActive.value = true
-        android.util.Log.d("TripVM", "Journey avviato (id=$id, trip=$tripId)")
+        android.util.Log.d("TripVM", "Nuovo journey avviato (id=$id, trip=$tripId)")
     }
+
+
 
     fun updateJourneyLocation(lat: Double, lng: Double) {
         val journey = _currentJourney.value
@@ -118,6 +137,7 @@ class TripViewModel(private val dao: TripDao,
         android.util.Log.d("TripVM", "STOP JOURNEY")
         _currentJourney.value?.let { journey ->
             journeyDao.updateEndTime(journey.id, System.currentTimeMillis())
+            _allJourneyPoints.value = _allJourneyPoints.value + listOf(_journeyPoints.value)
             _currentJourney.value = null
             _isJourneyActive.value = false
             android.util.Log.d("TripVM", "Journey ${journey.id} terminato. Punti totali: ${_journeyPoints.value.size}")
