@@ -87,6 +87,8 @@ fun Live() {
     val trips by tripViewModel.trips.collectAsState(initial = emptyList())
     val currentTrip = tripViewModel.getCurrentTrip(trips)
 
+    val isJourneyActive by tripViewModel.isJourneyActive.collectAsState()
+
     val launcher = rememberLauncherForActivityResult(RequestPermission()) { isGranted: Boolean ->
         //
     }
@@ -95,7 +97,6 @@ fun Live() {
         context, Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
 
-    var isJourneyActive by remember { mutableStateOf(false) }
 
     // Se non concesso, lo chiediamo
     LaunchedEffect(Unit) {
@@ -154,11 +155,9 @@ fun Live() {
 
                     Button(onClick = {
                         if (!isJourneyActive) {
-                            currentTrip?.id?.toLong()?.let { tripViewModel.startJourney(it) }
-                            isJourneyActive = true
+                            currentTrip.id.toLong().let { tripViewModel.startJourney(it) }
                         } else {
                             tripViewModel.stopJourney()
-                            isJourneyActive = false
                         }
                     }, colors = ButtonDefaults.buttonColors(containerColor = ciano)
                     ) {
@@ -264,10 +263,15 @@ fun TripMap(
                 val newLatLng = LatLng(loc.latitude, loc.longitude)
                 userLocation = newLatLng
                 tripViewModel.lastKnownLocation = newLatLng
-                if (!isUserInteracting)
+
+                if (!isUserInteracting) {
                     cameraPositionState.position = CameraPosition.fromLatLngZoom(newLatLng, 16f)
+                }
+
                 if (isJourneyActive) {
                     tripViewModel.updateJourneyLocation(loc.latitude, loc.longitude)
+                } else {
+                    android.util.Log.d("TripMap", "Journey NON attivo")
                 }
             }
         }

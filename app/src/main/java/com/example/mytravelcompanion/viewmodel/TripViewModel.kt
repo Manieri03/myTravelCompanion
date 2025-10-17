@@ -24,6 +24,9 @@ class TripViewModel(private val dao: TripDao,
     private var _journeyPoints = MutableStateFlow<List<LatLng>>(emptyList())
     val journeyPoints: StateFlow<List<LatLng>> get() = _journeyPoints
 
+    private var _isJourneyActive = MutableStateFlow(false)
+    val isJourneyActive: StateFlow<Boolean> get() = _isJourneyActive
+
     fun addTrip(trip: Trip) {
         viewModelScope.launch {
             dao.insertTrip(trip)
@@ -76,25 +79,43 @@ class TripViewModel(private val dao: TripDao,
         val id = journeyDao.insertJourney(journey)
         _currentJourney.value = journey.copy(id = id)
         _journeyPoints.value = emptyList()
+        _isJourneyActive.value = true
     }
 
-    fun updateJourneyLocation(lat: Double, lng: Double) = viewModelScope.launch {
-        _currentJourney.value?.let { journey ->
-            val points = _journeyPoints.value.toMutableList()
-            points.add(LatLng(lat, lng))
-            _journeyPoints.value = points
+    fun updateJourneyLocation(lat: Double, lng: Double) {
+        val journey = _currentJourney.value
+        if (journey == null) {
+            android.util.Log.w("TripVM", "updateJourneyLocation chiamato ma journey è null!")
+            return
+        }
 
-            // Salviamo il percorso nel DB come JSON
-            val json = Gson().toJson(points.map { LatLngSerializable(it.latitude, it.longitude) })
-            journeyDao.updatePath(journey.id, json)
+        if (!_isJourneyActive.value) {
+            android.util.Log.w("TripVM", "updateJourneyLocation chiamato ma journey non attivo!")
+            return
+        }
+        val newPoint = LatLng(lat, lng)
+        _journeyPoints.value = _journeyPoints.value + newPoint
+
+        android.util.Log.d("TripVM", "Aggiunto punto: $lat, $lng - Totale punti: ${_journeyPoints.value.size}")
+        viewModelScope.launch {
+            try {
+                val json = Gson().toJson(_journeyPoints.value.map {
+                    LatLngSerializable(it.latitude, it.longitude)
+                })
+                journeyDao.updatePath(journey.id, json)
+            } catch (e: Exception) {
+                android.util.Log.e("TripVM", "Errore salvando path: ${e.message}")
+            }
         }
     }
 
     fun stopJourney() = viewModelScope.launch {
+        android.util.Log.d("TripVM", "STOP JOURNEY")
         _currentJourney.value?.let { journey ->
             journeyDao.updateEndTime(journey.id, System.currentTimeMillis())
             _currentJourney.value = null
-            _journeyPoints.value = emptyList()
+            _isJourneyActive.value = false
+            android.util.Log.d("TripVM", "Journey ${journey.id} terminato. Punti totali: ${_journeyPoints.value.size}")
         }
     }
 }

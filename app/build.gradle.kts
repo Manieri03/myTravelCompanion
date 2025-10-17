@@ -18,9 +18,7 @@ plugins {
 
 android {
     namespace = "com.example.mytravelcompanion"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.mytravelcompanion"
@@ -34,6 +32,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix= ".debug"
+            isDebuggable = true
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
