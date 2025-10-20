@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class TripViewModel(private val dao: TripDao,
                     private val markerDao: MarkerDAO,
@@ -143,6 +145,60 @@ class TripViewModel(private val dao: TripDao,
             android.util.Log.d("TripVM", "Journey ${journey.id} terminato. Punti totali: ${_journeyPoints.value.size}")
         }
     }
+
+    suspend fun loadJourneysForTrip(tripId: Long) {
+        val journeys = journeyDao.getJourneysForTrip(tripId)
+        val gson = Gson()
+        val allPaths = mutableListOf<List<LatLng>>()
+
+        for (j in journeys) {
+            if (!j.path.isNullOrEmpty()) {
+                try {
+                    val list = gson.fromJson(
+                        j.path,
+                        Array<LatLngSerializable>::class.java
+                    ).map { LatLng(it.lat, it.lng) }
+                    allPaths.add(list)
+                } catch (e: Exception) {
+                    android.util.Log.e("TripVM", "Errore parsing percorso ${j.id}: ${e.message}")
+                }
+            }
+        }
+
+        _allJourneyPoints.value = allPaths
+    }
+
+    fun printAllJourneys() {
+        viewModelScope.launch {
+            val journeys = withContext(Dispatchers.IO) {
+                journeyDao.getAllJourneys()
+            }
+            journeys.forEach { journey ->
+                println(journey)
+            }
+        }
+    }
+
+    fun deleteAllJourneys() {
+        viewModelScope.launch {
+            journeyDao.deleteAllJourneys()
+            _allJourneyPoints.value = emptyList()
+            _currentJourney.value = null
+            _journeyPoints.value = emptyList()
+            _isJourneyActive.value = false
+            android.util.Log.d("TripVM", "Tutti i journey eliminati dal DB")
+        }
+    }
+
+    fun deleteJourneysForTrip(tripId: Long) {
+        viewModelScope.launch {
+            journeyDao.deleteJourneysForTrip(tripId)
+            _allJourneyPoints.value = _allJourneyPoints.value.filterNot { false }
+            android.util.Log.d("TripVM", "Journey del viaggio $tripId eliminati")
+        }
+    }
+
+
 }
 
 

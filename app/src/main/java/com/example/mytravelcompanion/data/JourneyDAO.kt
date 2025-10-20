@@ -28,4 +28,12 @@ interface JourneyDAO {
 
     @Query("DELETE FROM journeys")
     suspend fun deleteAllJourneys()
+
+    @Query("DELETE FROM journeys WHERE tripId = :tripId")
+    suspend fun deleteJourneysForTrip(tripId: Long)
+
+    @Query("SELECT * FROM journeys")
+    suspend fun getAllJourneys(): List<Journey>
+
+
 }

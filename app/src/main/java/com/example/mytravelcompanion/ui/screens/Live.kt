@@ -352,14 +352,17 @@ fun TripMap(
         }
     }
 
-    // Carica marker dal DB
+    // Carica markers e journeys dal DB
     LaunchedEffect(currentTrip?.id) {
         currentTrip?.let {
             val fromDb = tripViewModel.getMarkersForTrip(it.id)
             markers.clear()
             markers.addAll(fromDb)
+            tripViewModel.loadJourneysForTrip(it.id.toLong())
         }
     }
+
+
 
     GoogleMap(
         modifier = Modifier
@@ -387,8 +390,8 @@ fun TripMap(
             if (path.isNotEmpty()) {
                 com.google.maps.android.compose.Polyline(
                     points = path,
-                    color = ciano.copy(alpha = 0.5f),
-                    width = 4f
+                    color = ciano.copy(alpha = 0.7f),
+                    width = 10f
                 )
             } else {
                 android.util.Log.d("TripMap", "Nessun punto nel percorso: Polyline non disegnata")
@@ -399,7 +402,7 @@ fun TripMap(
             com.google.maps.android.compose.Polyline(
                 points = journeyPoints,
                 color = ciano,
-                width = 6f
+                width = 10f
             )
         }
 
