@@ -11,5 +11,6 @@ data class Trip(
     val destination: String,
     val tripType: TripType,
     val startDate: LocalDate?,
-    val endDate: LocalDate?
+    val endDate: LocalDate?,
+    val isCompleted: Boolean = false
 )

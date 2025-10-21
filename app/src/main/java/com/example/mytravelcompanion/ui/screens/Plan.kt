@@ -46,6 +46,8 @@ fun Plan() {
     val factory = remember { TripViewModelFactory(db.tripDao(), db.MarkerDAO(), db.JourneyDAO()) }
     val viewModel: TripViewModel = viewModel(factory = factory)
     val trips by viewModel.trips.collectAsState(initial = emptyList())
+    val today = LocalDate.now()
+    val scheduledTrips = trips.filter { it.startDate != null && it.startDate.isAfter(today) }
 
     var destination by remember { mutableStateOf("") }
     var selectedStartDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -211,61 +213,70 @@ fun Plan() {
             horizontalAlignment = Alignment.CenterHorizontally
         ){
             Text(text="Viaggi programmati",style = myTipography2.titleLarge)
-            trips.forEach {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .border(
-                            width = 2.dp,
-                            color = blu,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(8.dp)
+
+            if (scheduledTrips.isEmpty()) {
+                Text(
+                    text = "Nessun viaggio programmato",
+                    fontSize = 18.sp,
+                    style = myTipography2.bodyLarge
                 )
-                {
-                    Row(
+            } else {
+                scheduledTrips.forEach {
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = it.destination,
-                                fontSize = 18.sp,
-                                style = myTipography2.titleLarge
+                            .fillMaxSize()
+                            .border(
+                                width = 2.dp,
+                                color = blu,
+                                shape = RoundedCornerShape(12.dp)
                             )
-                            Text(
-                                text = "${it.startDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))} - ${it.endDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
-                                fontSize = 12.sp,
-                                style = myTipography2.bodyLarge
-                            )
-                            Text(
-                                text = "(${it.tripType.displayName})",
-                                fontSize = 12.sp,
-                                style = myTipography2.bodyLarge
-                            )
+                            .padding(8.dp)
+                    )
+                    {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = it.destination,
+                                    fontSize = 18.sp,
+                                    style = myTipography2.titleLarge
+                                )
+                                Text(
+                                    text = "${it.startDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))} - ${it.endDate?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}",
+                                    fontSize = 12.sp,
+                                    style = myTipography2.bodyLarge
+                                )
+                                Text(
+                                    text = "(${it.tripType.displayName})",
+                                    fontSize = 12.sp,
+                                    style = myTipography2.bodyLarge
+                                )
+                            }
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Icona elimina",
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable {
+                                            viewModel.deleteTrip(it)
+                                        }
+                                )
+                            }
                         }
 
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Icona elimina",
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clickable {
-                                        viewModel.deleteTrip(it)
-                                    }
-                            )
-                        }
+
                     }
 
-
                 }
-
             }
             Button(
                 onClick = {

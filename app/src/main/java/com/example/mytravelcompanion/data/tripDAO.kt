@@ -14,9 +14,16 @@ interface TripDao {
     @Query("SELECT * FROM trips")
     fun getAllTrips(): Flow<List<Trip>>
 
+    @Query("SELECT * FROM trips")
+    suspend fun getAllTripsOnce(): List<Trip>
+
+
     @Query("DELETE FROM trips")
     suspend fun deleteAllTrips()
 
     @Delete
     suspend fun deleteTrip(trip: Trip)
+
+    @Query("UPDATE trips SET isCompleted = 1 WHERE id = :tripId")
+    suspend fun markTripAsCompleted(tripId: Int)
 }

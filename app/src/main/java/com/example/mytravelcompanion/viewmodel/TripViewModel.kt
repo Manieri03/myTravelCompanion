@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.withContext
 
 class TripViewModel(private val dao: TripDao,
@@ -52,8 +53,11 @@ class TripViewModel(private val dao: TripDao,
 
     fun getCurrentTrip(trips: List<Trip>): Trip? {
         val today = LocalDate.now()
-        return trips.find { it.startDate != null && it.endDate != null &&
-                today >= it.startDate && today <= it.endDate }
+        return trips.find {
+            it.startDate != null && it.endDate != null &&
+                    today >= it.startDate && today <= it.endDate &&
+                    !it.isCompleted
+        }
     }
 
     suspend fun addMarker(tripId: Int, lat: Double, lng: Double, note: String?, photoPath: String?) {
@@ -197,6 +201,26 @@ class TripViewModel(private val dao: TripDao,
             android.util.Log.d("TripVM", "Journey del viaggio $tripId eliminati")
         }
     }
+
+    fun markTripAsCompleted(tripId: Int) {
+        viewModelScope.launch {
+            dao.markTripAsCompleted(tripId)
+        }
+    }
+
+    fun checkAndUpdateTripCompletion() {
+        viewModelScope.launch {
+            val allTrips = dao.getAllTripsOnce()
+            val now = LocalDate.now()
+
+            allTrips.forEach { trip ->
+                if (!trip.isCompleted && trip.endDate != null && trip.endDate.isBefore(now)) {
+                    dao.markTripAsCompleted(trip.id)
+                }
+            }
+        }
+    }
+
 
 
 }

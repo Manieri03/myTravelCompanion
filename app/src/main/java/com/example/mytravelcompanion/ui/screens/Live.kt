@@ -185,6 +185,17 @@ fun Live() {
                     ) {
                         Text(if (!isJourneyActive) "Inizia percorso" else "Stop percorso", style = myTipography2.bodyLarge)
                     }
+
+                    Button(
+                        onClick = {
+                            currentTrip?.let {
+                                tripViewModel.markTripAsCompleted(it.id)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = blu)
+                    ) {
+                        Text("Concludi viaggio", style = myTipography2.bodyLarge)
+                    }
                 }
             } else {
                 Text(
