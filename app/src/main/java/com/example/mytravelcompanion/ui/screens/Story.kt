@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -72,7 +73,7 @@ fun Story() {
                 .fillMaxSize()
                 .padding(start = 18.dp, end = 18.dp, top = 55.dp, bottom = 18.dp)
                 .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(35.dp)
+            verticalArrangement = Arrangement.spacedBy(45.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -109,12 +110,15 @@ fun Story() {
                     )
                 }
             } else {
-                pastTrips.forEach { trip ->
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { selectedTrip = trip }
-                    ) {
-                        TripCard(trip)
+                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    pastTrips.forEach { trip ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedTrip = trip }
+                        ) {
+                            TripCard(trip)
+                        }
                     }
                 }
             }
@@ -182,6 +186,8 @@ fun TripMapPreview(
     val journeyPoints by tripViewModel.allJourneyPoints.collectAsState()
 
     var initialCamera by remember { mutableStateOf<LatLng?>(null) }
+    var selectedMarker by remember { mutableStateOf<com.example.mytravelcompanion.data.Marker?>(null) }
+    var showMarkerDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(tripId) {
         val tripMarkers = tripViewModel.getMarkersForTrip(tripId.toInt())
@@ -193,8 +199,6 @@ fun TripMapPreview(
         initialCamera = paths.flatten().firstOrNull()
             ?: tripMarkers.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
     }
-
-
 
     if (initialCamera == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -232,9 +236,77 @@ fun TripMapPreview(
             Marker(
                 state = MarkerState(LatLng(marker.latitude, marker.longitude)),
                 title = "Ricordo #${index + 1}",
-                snippet = marker.note ?: ""
+                snippet = marker.note ?: "",
+                onClick = {
+                    selectedMarker = marker
+                    showMarkerDialog = true
+                    true
+                }
             )
         }
+    }
+
+    if (showMarkerDialog && selectedMarker != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {
+                showMarkerDialog = false
+                selectedMarker = null
+            },
+            title = { Text("Dettagli ricordo", style = myTipography2.titleLarge) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val note = selectedMarker?.note
+                    val photoPath = selectedMarker?.photoPath
+                    val context = LocalContext.current
+
+                    if (note.isNullOrEmpty() && photoPath.isNullOrEmpty()) {
+                        Text(
+                            text = "Non ci sono note o foto associate a questo ricordo.",
+                            style = myTipography2.bodyLarge,
+                            color = ciano
+                        )
+                    } else {
+                        note?.takeIf { it.isNotEmpty() }?.let {
+                            Text(it, style = myTipography2.bodyLarge)
+                        }
+
+                        photoPath?.let { path ->
+                            val bitmap = try {
+                                if (path.startsWith("content://")) {
+                                    val stream = context.contentResolver.openInputStream(android.net.Uri.parse(path))
+                                    android.graphics.BitmapFactory.decodeStream(stream).also { stream?.close() }
+                                } else {
+                                    android.graphics.BitmapFactory.decodeFile(path)
+                                }
+                            } catch (e: Exception) { null }
+
+                            bitmap?.let {
+                                Image(
+                                    bitmap = it.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                        .border(2.dp, ciano, RoundedCornerShape(16.dp))
+                                        .clip(RoundedCornerShape(16.dp))
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showMarkerDialog = false
+                        selectedMarker = null
+                    }
+                ) { Text("Chiudi", style = myTipography2.bodyLarge, color = ciano) }
+            }
+        )
     }
 }
 

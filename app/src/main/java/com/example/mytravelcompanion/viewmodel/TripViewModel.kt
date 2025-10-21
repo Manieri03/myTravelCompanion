@@ -33,6 +33,9 @@ class TripViewModel(private val dao: TripDao,
     private var _allJourneyPoints = MutableStateFlow<List<List<LatLng>>>(emptyList())
     val allJourneyPoints: StateFlow<List<List<LatLng>>> get() = _allJourneyPoints
 
+    private val _photos = MutableStateFlow<Map<Int, List<Marker>>>(emptyMap())
+    val photos: StateFlow<Map<Int, List<Marker>>> get() = _photos
+
     fun addTrip(trip: Trip) {
         viewModelScope.launch {
             dao.insertTrip(trip)
@@ -218,6 +221,13 @@ class TripViewModel(private val dao: TripDao,
                     dao.markTripAsCompleted(trip.id)
                 }
             }
+        }
+    }
+
+    fun loadMemories() {
+        viewModelScope.launch {
+            val allMarkers = markerDao.getAllPhotos()
+            _photos.value = allMarkers.groupBy { it.tripId }
         }
     }
 

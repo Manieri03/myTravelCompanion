@@ -16,4 +16,7 @@ interface MarkerDAO {
 
     @Query("DELETE FROM markers WHERE tripId = :tripId")
     suspend fun deleteMarkersByTrip(tripId: Int)
+
+    @Query("SELECT * FROM markers WHERE photoPath IS NOT NULL ORDER BY tripId")
+    suspend fun getAllPhotos(): List<Marker>
 }

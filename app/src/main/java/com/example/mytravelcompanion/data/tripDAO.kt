@@ -26,4 +26,5 @@ interface TripDao {
 
     @Query("UPDATE trips SET isCompleted = 1 WHERE id = :tripId")
     suspend fun markTripAsCompleted(tripId: Int)
+
 }
