@@ -1,11 +1,15 @@
 package com.example.mytravelcompanion.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +42,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -56,52 +61,86 @@ fun Story() {
     val pastTrips = trips.filter {
         (it.endDate != null && it.endDate!!.isBefore(LocalDate.now())) || it.isCompleted
     }.sortedByDescending { it.endDate ?: LocalDate.now() }
+
+    var selectedTrip by remember { mutableStateOf<Trip?>(null) }
+
     val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(start = 18.dp, end = 18.dp, top = 55.dp, bottom = 18.dp)
-            .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(45.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
+    if (selectedTrip == null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 18.dp, end = 18.dp, top = 55.dp, bottom = 18.dp)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(35.dp)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.tc_logo),
-                contentDescription = "Logo app",
-                modifier = Modifier
-                    .size(70.dp)
-                    .clip(RoundedCornerShape(16.dp))
-            )
-        }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.tc_logo),
+                    contentDescription = "Logo app",
+                    modifier = Modifier
+                        .size(70.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                )
+            }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                "I tuoi viaggi",
-                fontSize = 26.sp,
-                style = myTipography2.titleLarge
-            )
-        }
-
-        if (pastTrips.isEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "Nessun viaggio completato",
-                    style = myTipography2.bodyLarge
+                    "I tuoi viaggi",
+                    fontSize = 26.sp,
+                    style = myTipography2.titleLarge
                 )
             }
-        } else {
-            pastTrips.forEach { trip ->
-                TripCard(trip)
+
+            if (pastTrips.isEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        "Nessun viaggio completato",
+                        style = myTipography2.bodyLarge
+                    )
+                }
+            } else {
+                pastTrips.forEach { trip ->
+                    Box(modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedTrip = trip }
+                    ) {
+                        TripCard(trip)
+                    }
+                }
+            }
+        }
+    }else{
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Mappa del viaggio a ${selectedTrip!!.destination}",
+                style = myTipography2.titleLarge
+            )
+
+            TripMapPreview(
+                tripViewModel = tripViewModel,
+                tripId = selectedTrip!!.id.toLong()
+            )
+
+            Button(
+                onClick = { selectedTrip = null },
+                colors = ButtonDefaults.buttonColors(containerColor = ciano)) {
+                Text("Torna indietro", style = myTipography2.bodyLarge)
             }
         }
     }
@@ -148,16 +187,14 @@ fun TripMapPreview(
         val tripMarkers = tripViewModel.getMarkersForTrip(tripId.toInt())
         markers.clear()
         markers.addAll(tripMarkers)
-
         tripViewModel.loadJourneysForTrip(tripId)
 
-        val allJourneys = journeyPoints.flatten()
-        if (allJourneys.isNotEmpty()) {
-            initialCamera = allJourneys.first()
-        } else if (tripMarkers.isNotEmpty()) {
-            initialCamera = LatLng(tripMarkers.first().latitude, tripMarkers.first().longitude)
-        }
+        val paths = tripViewModel.allJourneyPoints.first()
+        initialCamera = paths.flatten().firstOrNull()
+            ?: tripMarkers.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
     }
+
+
 
     if (initialCamera == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
