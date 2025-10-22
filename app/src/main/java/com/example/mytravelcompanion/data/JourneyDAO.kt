@@ -12,7 +12,7 @@ interface JourneyDAO {
     suspend fun insertJourney(journey: Journey): Long
 
     @Query("SELECT * FROM journeys WHERE tripId = :tripId")
-    suspend fun getJourneysForTrip(tripId: Long): List<Journey>
+    suspend fun getJourneysForTrip(tripId: Int): List<Journey>
 
     @Query("SELECT * FROM journeys WHERE id = :id")
     suspend fun getJourneyById(id: Long): Journey?
@@ -30,7 +30,7 @@ interface JourneyDAO {
     suspend fun deleteAllJourneys()
 
     @Query("DELETE FROM journeys WHERE tripId = :tripId")
-    suspend fun deleteJourneysForTrip(tripId: Long)
+    suspend fun deleteJourneysForTrip(tripId: Int)
 
     @Query("SELECT * FROM journeys")
     suspend fun getAllJourneys(): List<Journey>

@@ -26,7 +26,7 @@ fun NavHost() {
             modifier = Modifier.padding(paddingValues)
         ) {
             composable("Plan") { Plan() }
-            composable("Live") { Live() }
+            composable("Live") { Live(navController) }
             composable("Story") { Story() }
             composable("Graphics") { Graphics() }
             composable("Gallery") { Gallery() }

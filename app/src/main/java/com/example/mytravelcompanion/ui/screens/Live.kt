@@ -62,6 +62,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.navigation.NavController
 import com.example.mytravelcompanion.data.MarkerDAO
 import com.example.mytravelcompanion.data.Trip
 import com.example.mytravelcompanion.data.TripType
@@ -81,7 +82,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 @Composable
-fun Live() {
+fun Live(navController: NavController) {
     val context = LocalContext.current
     val dao = AppDatabase.getDatabase(context).tripDao()
     val markerDAO= AppDatabase.getDatabase(context).MarkerDAO()
@@ -116,7 +117,7 @@ fun Live() {
         modifier = Modifier
             .fillMaxSize()
             .padding(start = 18.dp, end = 18.dp, top = 55.dp, bottom = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(45.dp)
+        verticalArrangement = Arrangement.spacedBy(15.dp)
     ){
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -144,6 +145,17 @@ fun Live() {
 
         // Mostra la mappa solo se c'è un viaggio e se il permesso è concesso
         if (currentTrip != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = currentTrip.destination,
+                    fontSize = 22.sp,
+                    style = myTipography2.bodyLarge,
+                    color = ciano
+                )
+            }
             if (hasLocationPermission) {
                 Column(
                     modifier = Modifier
@@ -164,37 +176,45 @@ fun Live() {
                             tripId = currentTrip.id.toLong()
                         )
                     }
-
-                    Button(onClick = {
-                        if (!isJourneyActive) {
-                            if (hasLocationPermission) {
-                                // Avvio percorso e service
-                                currentTrip.id.toLong().let { tripViewModel.startJourney(it) }
-                                serviceIntent.putExtra("tripId", currentTrip.id)
-                                ContextCompat.startForegroundService(context, serviceIntent)
-                            } else {
-                                // Richiedi permesso
-                                launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                            }
-                        } else {
-                            // Ferma percorso e poi service
-                            tripViewModel.stopJourney()
-                            context.stopService(serviceIntent)
+                    Row (
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ){
+                        Button(
+                            onClick = {
+                                if (!isJourneyActive) {
+                                    if (hasLocationPermission) {
+                                        // Avvio percorso e service
+                                        currentTrip.id
+                                            .let { tripViewModel.startJourney(it) }
+                                        serviceIntent.putExtra("tripId", currentTrip.id)
+                                        ContextCompat.startForegroundService(context, serviceIntent)
+                                    } else {
+                                        // Richiedi permesso
+                                        launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                    }
+                                } else {
+                                    // Ferma percorso e poi service
+                                    tripViewModel.stopJourney()
+                                    context.stopService(serviceIntent)
+                                }
+                            }, colors = ButtonDefaults.buttonColors(containerColor = ciano)
+                        ) {
+                            Text(
+                                if (!isJourneyActive) "Avvia" else "Stop",
+                                style = myTipography2.bodyLarge
+                            )
                         }
-                    }, colors = ButtonDefaults.buttonColors(containerColor = ciano)
-                    ) {
-                        Text(if (!isJourneyActive) "Inizia percorso" else "Stop percorso", style = myTipography2.bodyLarge)
-                    }
 
-                    Button(
-                        onClick = {
-                            currentTrip?.let {
-                                tripViewModel.markTripAsCompleted(it.id)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = blu)
-                    ) {
-                        Text("Concludi viaggio", style = myTipography2.bodyLarge)
+                        Button(
+                            onClick = {
+                                currentTrip?.let {
+                                    tripViewModel.markTripAsCompleted(it.id)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = blu)
+                        ) {
+                            Text("Fine viaggio", style = myTipography2.bodyLarge)
+                        }
                     }
                 }
             } else {
@@ -205,20 +225,28 @@ fun Live() {
                 )
             }
         }
-         else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+        else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(25.dp)
             ) {
                 Text(
                     text = "Nessun viaggio",
-                    fontSize = 26.sp,
-                    style = myTipography2.titleLarge
+                    style = myTipography2.bodyLarge
                 )
+
+                Button(
+                    onClick = { navController.navigate("Plan") },
+                    colors = ButtonDefaults.buttonColors(containerColor = ciano),
+                ) {
+                    Text("Pianificalo", style = myTipography2.bodyLarge)
+                }
+
             }
         }
-
-
 
     }
 }
@@ -369,7 +397,7 @@ fun TripMap(
             val fromDb = tripViewModel.getMarkersForTrip(it.id)
             markers.clear()
             markers.addAll(fromDb)
-            tripViewModel.loadJourneysForTrip(it.id.toLong())
+            tripViewModel.loadJourneysForTrip(it.id)
         }
     }
 

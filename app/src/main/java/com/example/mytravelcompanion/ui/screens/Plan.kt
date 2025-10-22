@@ -278,26 +278,6 @@ fun Plan() {
 
                 }
             }
-            Button(
-                onClick = {
-                    viewModel.deleteAllTrips()
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Row {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Icona elimina tutti",
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Elimina tutti i viaggi",
-                        fontSize = 16.sp,
-                        style = MaterialTheme.typography.bodyLarge)
-                }
-            }
         }
     }
 }

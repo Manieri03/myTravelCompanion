@@ -86,18 +86,18 @@ fun Gallery() {
 
         if (memories.isEmpty()) {
             Text(
-                "Non hai ancora aggiunto ricordi con foto 📸",
+                "Non hai ancora aggiunto foto",
                 style = myTipography2.bodyLarge,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         } else {
-            memories.forEach { (tripId, photos) ->
+            memories.forEach { (tripDestination, photos) ->
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Viaggio #$tripId",
+                        text = "Viaggio a $tripDestination",
                         fontSize = 20.sp,
                         style = myTipography2.titleMedium
                     )

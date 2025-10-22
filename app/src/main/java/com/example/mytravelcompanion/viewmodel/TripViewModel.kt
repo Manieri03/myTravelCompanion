@@ -33,8 +33,8 @@ class TripViewModel(private val dao: TripDao,
     private var _allJourneyPoints = MutableStateFlow<List<List<LatLng>>>(emptyList())
     val allJourneyPoints: StateFlow<List<List<LatLng>>> get() = _allJourneyPoints
 
-    private val _photos = MutableStateFlow<Map<Int, List<Marker>>>(emptyMap())
-    val photos: StateFlow<Map<Int, List<Marker>>> get() = _photos
+    private val _photos = MutableStateFlow<Map<String, List<MarkerWithTripName>>>(emptyMap())
+    val photos: StateFlow<Map<String, List<MarkerWithTripName>>> get() = _photos
 
     fun addTrip(trip: Trip) {
         viewModelScope.launch {
@@ -86,7 +86,7 @@ class TripViewModel(private val dao: TripDao,
     }
 
 
-    fun startJourney(tripId: Long) = viewModelScope.launch {
+    fun startJourney(tripId: Int) = viewModelScope.launch {
         _currentJourney.value?.let { current ->
             // salva nel DB
             val json = Gson().toJson(_journeyPoints.value.map {
@@ -153,7 +153,7 @@ class TripViewModel(private val dao: TripDao,
         }
     }
 
-    suspend fun loadJourneysForTrip(tripId: Long) {
+    suspend fun loadJourneysForTrip(tripId: Int) {
         val journeys = journeyDao.getJourneysForTrip(tripId)
         val gson = Gson()
         val allPaths = mutableListOf<List<LatLng>>()
@@ -197,7 +197,7 @@ class TripViewModel(private val dao: TripDao,
         }
     }
 
-    fun deleteJourneysForTrip(tripId: Long) {
+    fun deleteJourneysForTrip(tripId: Int) {
         viewModelScope.launch {
             journeyDao.deleteJourneysForTrip(tripId)
             _allJourneyPoints.value = _allJourneyPoints.value.filterNot { false }
@@ -226,8 +226,8 @@ class TripViewModel(private val dao: TripDao,
 
     fun loadMemories() {
         viewModelScope.launch {
-            val allMarkers = markerDao.getAllPhotos()
-            _photos.value = allMarkers.groupBy { it.tripId }
+            val allMarkers = markerDao.getAllPhotosTrip()
+            _photos.value = allMarkers.groupBy { it.destination }
         }
     }
 

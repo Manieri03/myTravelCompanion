@@ -124,9 +124,11 @@ fun Story() {
             }
         }
     }else{
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -138,13 +140,23 @@ fun Story() {
 
             TripMapPreview(
                 tripViewModel = tripViewModel,
-                tripId = selectedTrip!!.id.toLong()
+                tripId = selectedTrip!!.id
             )
 
             Button(
                 onClick = { selectedTrip = null },
                 colors = ButtonDefaults.buttonColors(containerColor = ciano)) {
                 Text("Torna indietro", style = myTipography2.bodyLarge)
+            }
+
+            Button(
+                onClick = {
+                    tripViewModel.deleteTrip(selectedTrip!!)
+                    selectedTrip = null
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color.Red)
+            ) {
+                Text("Elimina viaggio", style = myTipography2.bodyLarge, color = androidx.compose.ui.graphics.Color.White)
             }
         }
     }
@@ -179,7 +191,7 @@ fun TripCard(trip: Trip) {
 @Composable
 fun TripMapPreview(
     tripViewModel: TripViewModel,
-    tripId: Long
+    tripId: Int
 ) {
     val context = LocalContext.current
     val markers = remember { mutableStateListOf<com.example.mytravelcompanion.data.Marker>() }
