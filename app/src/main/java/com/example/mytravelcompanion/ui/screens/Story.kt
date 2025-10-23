@@ -124,11 +124,9 @@ fun Story() {
             }
         }
     }else{
-        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -143,20 +141,25 @@ fun Story() {
                 tripId = selectedTrip!!.id
             )
 
-            Button(
-                onClick = { selectedTrip = null },
-                colors = ButtonDefaults.buttonColors(containerColor = ciano)) {
-                Text("Torna indietro", style = myTipography2.bodyLarge)
-            }
+            Row(
+                modifier=Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally)
+            ){
+                Button(
+                    onClick = { selectedTrip = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = ciano)) {
+                    Text("Indietro", style = myTipography2.bodyLarge)
+                }
 
-            Button(
-                onClick = {
-                    tripViewModel.deleteTrip(selectedTrip!!)
-                    selectedTrip = null
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color.Red)
-            ) {
-                Text("Elimina viaggio", style = myTipography2.bodyLarge, color = androidx.compose.ui.graphics.Color.White)
+                Button(
+                    onClick = {
+                        tripViewModel.deleteTrip(selectedTrip!!)
+                        selectedTrip = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color.Red)
+                ) {
+                    Text("Elimina viaggio", style = myTipography2.bodyLarge, color = androidx.compose.ui.graphics.Color.White)
+                }
             }
         }
     }
