@@ -24,5 +24,7 @@ data class Journey(
     val tripId: Int,
     val start: Long,
     val end: Long? = null,
-    val path: String? = null
+    val path: String? = null,
+    val distanceMeters: Double? = null,
+    val durationSeconds: Long? = null
 )

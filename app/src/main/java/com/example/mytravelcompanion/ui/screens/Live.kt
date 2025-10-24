@@ -97,6 +97,9 @@ fun Live(navController: NavController) {
     val isJourneyActive by tripViewModel.isJourneyActive.collectAsState()
     val serviceIntent = Intent(context, JourneyService::class.java)
 
+    val distance by tripViewModel.liveDistanceMeters.collectAsState()
+    val duration by tripViewModel.liveDurationSeconds.collectAsState()
+
     val launcher = rememberLauncherForActivityResult(RequestPermission()) { isGranted: Boolean ->
         //
     }
@@ -214,6 +217,11 @@ fun Live(navController: NavController) {
                             colors = ButtonDefaults.buttonColors(containerColor = blu)
                         ) {
                             Text("Fine viaggio", style = myTipography2.bodyLarge)
+                        }
+
+                        Column {
+                            Text("Distanza: ${"%.2f".format(distance / 1000)} km")
+                            Text("Durata: ${duration / 60} min ${duration % 60} sec")
                         }
                     }
                 }
@@ -339,7 +347,7 @@ fun TripMap(
 
     // Aggiornamento posizione utente
     LaunchedEffect(isJourneyActive) {
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000L).build()
+        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L).build()
         val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 val loc = result.lastLocation ?: return

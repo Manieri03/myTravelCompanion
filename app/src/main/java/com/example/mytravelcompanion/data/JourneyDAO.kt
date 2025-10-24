@@ -35,5 +35,7 @@ interface JourneyDAO {
     @Query("SELECT * FROM journeys")
     suspend fun getAllJourneys(): List<Journey>
 
+    @Query("UPDATE journeys SET distanceMeters = :distance, durationSeconds = :duration WHERE id = :id")
+    suspend fun updateDistanceAndDuration(id: Long, distance: Double, duration: Long)
 
 }

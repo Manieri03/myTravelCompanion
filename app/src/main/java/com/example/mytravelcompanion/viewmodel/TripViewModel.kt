@@ -2,6 +2,7 @@ package com.example.mytravelcompanion.data
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mytravelcompanion.util.DistanceCalculator
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +36,12 @@ class TripViewModel(private val dao: TripDao,
 
     private val _photos = MutableStateFlow<Map<String, List<MarkerWithTripName>>>(emptyMap())
     val photos: StateFlow<Map<String, List<MarkerWithTripName>>> get() = _photos
+
+    private val _liveDistanceMeters = MutableStateFlow(0.0)
+    val liveDistanceMeters: StateFlow<Double> get() = _liveDistanceMeters
+
+    private val _liveDurationSeconds = MutableStateFlow(0L)
+    val liveDurationSeconds: StateFlow<Long> get() = _liveDurationSeconds
 
     fun addTrip(trip: Trip) {
         viewModelScope.launch {
@@ -113,6 +120,7 @@ class TripViewModel(private val dao: TripDao,
 
     fun updateJourneyLocation(lat: Double, lng: Double) {
         val journey = _currentJourney.value
+
         if (journey == null) {
             android.util.Log.w("TripVM", "Journey è null")
             return
@@ -128,13 +136,15 @@ class TripViewModel(private val dao: TripDao,
 
         android.util.Log.d("TripVM", "Punto aggiunto: $lat, $lng - Totale punti attuali: ${_journeyPoints.value.size}")
 
+        _liveDistanceMeters.value = DistanceCalculator.totalDistance(
+            _journeyPoints.value.map { LatLngSerializable(it.latitude, it.longitude) }
+        )
+        _liveDurationSeconds.value = ((System.currentTimeMillis() - journey.start) / 1000)
+
         viewModelScope.launch {
             try {
-                val json = Gson().toJson(_journeyPoints.value.map {
-                    LatLngSerializable(it.latitude, it.longitude)
-                })
+                val json = Gson().toJson(_journeyPoints.value.map { LatLngSerializable(it.latitude, it.longitude) })
                 journeyDao.updatePath(journey.id, json)
-                android.util.Log.d("TripVM", "Path salvato nel DB per journey ${journey.id}")
             } catch (e: Exception) {
                 android.util.Log.e("TripVM", "Errore salvando path: ${e.message}")
             }
@@ -143,15 +153,28 @@ class TripViewModel(private val dao: TripDao,
 
 
     fun stopJourney() = viewModelScope.launch {
-        android.util.Log.d("TripVM", "STOP JOURNEY")
         _currentJourney.value?.let { journey ->
-            journeyDao.updateEndTime(journey.id, System.currentTimeMillis())
+            val endTime = System.currentTimeMillis()
+            journeyDao.updateEndTime(journey.id, endTime)
+            val pathJson = Gson().toJson(_journeyPoints.value.map { LatLngSerializable(it.latitude, it.longitude) })
+            journeyDao.updatePath(journey.id, pathJson)
+
+            // Salvataggio distanza e durata finale
+            val distanceMeters = DistanceCalculator.totalDistance(_journeyPoints.value.map { LatLngSerializable(it.latitude, it.longitude) })
+            val durationSeconds = (endTime - journey.start) / 1000
+            journeyDao.updateDistanceAndDuration(journey.id, distanceMeters, durationSeconds)
+
             _allJourneyPoints.value = _allJourneyPoints.value + listOf(_journeyPoints.value)
+
+            // Reset
             _currentJourney.value = null
+            _journeyPoints.value = emptyList()
             _isJourneyActive.value = false
-            android.util.Log.d("TripVM", "Journey ${journey.id} terminato. Punti totali: ${_journeyPoints.value.size}")
+            _liveDistanceMeters.value = 0.0
+            _liveDurationSeconds.value = 0L
         }
     }
+
 
     suspend fun loadJourneysForTrip(tripId: Int) {
         val journeys = journeyDao.getJourneysForTrip(tripId)
