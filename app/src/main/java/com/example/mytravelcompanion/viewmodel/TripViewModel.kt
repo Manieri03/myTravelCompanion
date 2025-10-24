@@ -43,6 +43,9 @@ class TripViewModel(private val dao: TripDao,
     private val _liveDurationSeconds = MutableStateFlow(0L)
     val liveDurationSeconds: StateFlow<Long> get() = _liveDurationSeconds
 
+    private val _journeys = MutableStateFlow<List<Journey>>(emptyList())
+    val journeys: StateFlow<List<Journey>> get() = _journeys
+
     fun addTrip(trip: Trip) {
         viewModelScope.launch {
             dao.insertTrip(trip)
@@ -119,22 +122,26 @@ class TripViewModel(private val dao: TripDao,
 
 
     fun updateJourneyLocation(lat: Double, lng: Double) {
-        val journey = _currentJourney.value
-
-        if (journey == null) {
-            android.util.Log.w("TripVM", "Journey è null")
-            return
-        }
-
-        if (!_isJourneyActive.value) {
-            android.util.Log.w("TripVM", "Journey non attivo")
-            return
-        }
+        val journey = _currentJourney.value ?: return
+        if (!_isJourneyActive.value) return
 
         val newPoint = LatLng(lat, lng)
-        _journeyPoints.value = _journeyPoints.value + newPoint
+        val lastPoint = _journeyPoints.value.lastOrNull()
 
-        android.util.Log.d("TripVM", "Punto aggiunto: $lat, $lng - Totale punti attuali: ${_journeyPoints.value.size}")
+        if (lastPoint != null) {
+            val delta = DistanceCalculator.distanceBetween(
+                LatLngSerializable(lastPoint.latitude, lastPoint.longitude),
+                LatLngSerializable(newPoint.latitude, newPoint.longitude)
+            )
+
+            // Ignoro salti improvvisi (per debug posizione simulata)
+            if (delta > 1000) {
+                android.util.Log.w("TripVM", "Salto anomalo di ${"%.2f".format(delta)} m — punto ignorato")
+                return
+            }
+        }
+
+        _journeyPoints.value = _journeyPoints.value + newPoint
 
         _liveDistanceMeters.value = DistanceCalculator.totalDistance(
             _journeyPoints.value.map { LatLngSerializable(it.latitude, it.longitude) }
@@ -142,12 +149,8 @@ class TripViewModel(private val dao: TripDao,
         _liveDurationSeconds.value = ((System.currentTimeMillis() - journey.start) / 1000)
 
         viewModelScope.launch {
-            try {
-                val json = Gson().toJson(_journeyPoints.value.map { LatLngSerializable(it.latitude, it.longitude) })
-                journeyDao.updatePath(journey.id, json)
-            } catch (e: Exception) {
-                android.util.Log.e("TripVM", "Errore salvando path: ${e.message}")
-            }
+            val json = Gson().toJson(_journeyPoints.value.map { LatLngSerializable(it.latitude, it.longitude) })
+            journeyDao.updatePath(journey.id, json)
         }
     }
 
@@ -196,6 +199,7 @@ class TripViewModel(private val dao: TripDao,
         }
 
         _allJourneyPoints.value = allPaths
+        _journeys.value = journeys
     }
 
     fun printAllJourneys() {

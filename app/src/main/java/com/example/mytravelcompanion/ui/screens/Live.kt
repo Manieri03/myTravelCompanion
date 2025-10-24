@@ -63,12 +63,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.navigation.NavController
+import com.example.mytravelcompanion.data.LatLngSerializable
 import com.example.mytravelcompanion.data.MarkerDAO
 import com.example.mytravelcompanion.data.Trip
 import com.example.mytravelcompanion.data.TripType
 import com.example.mytravelcompanion.service.JourneyService
 import com.example.mytravelcompanion.ui.theme.blu
 import com.example.mytravelcompanion.ui.theme.ciano
+import com.example.mytravelcompanion.util.DistanceCalculator
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -218,8 +220,14 @@ fun Live(navController: NavController) {
                         ) {
                             Text("Fine viaggio", style = myTipography2.bodyLarge)
                         }
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ){
 
-                        Column {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
                             Text("Distanza: ${"%.2f".format(distance / 1000)} km")
                             Text("Durata: ${duration / 60} min ${duration % 60} sec")
                         }
@@ -283,12 +291,14 @@ fun TripMap(
     val coroutineScope = rememberCoroutineScope()
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
-
     var selectedMarker by remember { mutableStateOf<com.example.mytravelcompanion.data.Marker?>(null) }
     var showMarkerDialog by remember { mutableStateOf(false) }
 
     var startLatLng by remember { mutableStateOf<LatLng?>(null) }
     val journeyPoints by tripViewModel.journeyPoints.collectAsState()
+    var selectedJourney by remember { mutableStateOf<com.example.mytravelcompanion.data.Journey?>(null) }
+    var showJourneyDialog by remember { mutableStateOf(false) }
+
 
     // Recupera la posizione attuale al primo avvio
     LaunchedEffect(Unit) {
@@ -409,7 +419,8 @@ fun TripMap(
         }
     }
 
-
+    val alljourneyPoints by tripViewModel.allJourneyPoints.collectAsState()
+    val journeys by tripViewModel.journeys.collectAsState()
 
     GoogleMap(
         modifier = Modifier
@@ -427,21 +438,36 @@ fun TripMap(
             myLocationButtonEnabled = true
         ),
         onMapClick = { latLng ->
-            selectedLatLng = latLng
-            showMainDialog = true
+            val thresholdMeters = 20.0
+            val clickedJourneyIndex = alljourneyPoints.indexOfFirst { path ->
+                path.zipWithNext().any { (a, b) ->
+                    val distToSegment = DistanceCalculator.distanceToSegment(
+                        LatLngSerializable(latLng.latitude, latLng.longitude),
+                        LatLngSerializable(a.latitude, a.longitude),
+                        LatLngSerializable(b.latitude, b.longitude)
+                    )
+                    distToSegment < thresholdMeters
+                }
+            }
+
+            if (clickedJourneyIndex != -1) {
+                selectedJourney = journeys.getOrNull(clickedJourneyIndex)
+                showJourneyDialog = true
+            } else {
+                // Se non ha cliccato su un percorso, apre il dialog normale
+                selectedLatLng = latLng
+                showMainDialog = true
+            }
         }
     ) {
-        val journeyPoints by tripViewModel.journeyPoints.collectAsState()
-        val alljourneyPoints by tripViewModel.allJourneyPoints.collectAsState()
-        for (path in alljourneyPoints) {
+
+        alljourneyPoints.forEachIndexed { index, path ->
             if (path.isNotEmpty()) {
                 com.google.maps.android.compose.Polyline(
                     points = path,
                     color = ciano.copy(alpha = 0.7f),
-                    width = 10f
+                    width = 15f,
                 )
-            } else {
-                android.util.Log.d("TripMap", "Nessun punto nel percorso: Polyline non disegnata")
             }
         }
 
@@ -449,7 +475,7 @@ fun TripMap(
             com.google.maps.android.compose.Polyline(
                 points = journeyPoints,
                 color = ciano,
-                width = 10f
+                width = 15f
             )
         }
 
@@ -466,6 +492,49 @@ fun TripMap(
             )
         }
     }
+
+    if (showJourneyDialog && selectedJourney != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {
+                showJourneyDialog = false
+                selectedJourney = null
+            },
+            title = {
+                Text(
+                    "Dettagli percorso",
+                    style = myTipography2.titleLarge
+                )
+            },
+            text = {
+                val km = selectedJourney!!.distanceMeters?.div(1000)
+                val duration = selectedJourney!!.durationSeconds
+                val minutes = duration?.div(60)
+                val seconds = duration?.rem(60)
+                Column(
+                ) {
+                    Text(
+                        "Distanza: ${"%.2f".format(km)} km",
+                        style = myTipography2.bodyLarge
+                    )
+                    Text(
+                        "Durata: ${minutes} min ${seconds} sec",
+                        style = myTipography2.bodyLarge
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showJourneyDialog = false
+                        selectedJourney = null
+                    }
+                ) {
+                    Text("Chiudi", style = myTipography2.bodyLarge, color = ciano)
+                }
+            }
+        )
+    }
+
 
     if (showMarkerDialog && selectedMarker != null) {
         androidx.compose.material3.AlertDialog(

@@ -25,4 +25,16 @@ object DistanceCalculator {
         }
         return total
     }
+
+    fun distanceToSegment(p: LatLngSerializable, v: LatLngSerializable, w: LatLngSerializable): Double {
+        val l2 = distanceBetween(v, w).pow(2)
+        if (l2 == 0.0) return distanceBetween(p, v)
+        val t = max(0.0, min(1.0,
+            ((p.lat - v.lat) * (w.lat - v.lat) + (p.lng - v.lng) * (w.lng - v.lng)) / l2))
+        val projection = LatLngSerializable(
+            v.lat + t * (w.lat - v.lat),
+            v.lng + t * (w.lng - v.lng)
+        )
+        return distanceBetween(p, projection)
+    }
 }
