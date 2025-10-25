@@ -76,6 +76,8 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import kotlinx.coroutines.awaitCancellation
@@ -299,6 +301,9 @@ fun TripMap(
     var selectedJourney by remember { mutableStateOf<com.example.mytravelcompanion.data.Journey?>(null) }
     var showJourneyDialog by remember { mutableStateOf(false) }
 
+    var customNoteIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+    var customPhotoIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+    var customBothIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
 
     // Recupera la posizione attuale al primo avvio
     LaunchedEffect(Unit) {
@@ -437,6 +442,34 @@ fun TripMap(
             zoomControlsEnabled = true,
             myLocationButtonEnabled = true
         ),
+        onMapLoaded = {
+            try {
+                val sizeDp = 40
+                val density = context.resources.displayMetrics.density
+                val sizePx = (sizeDp * density).toInt()
+
+                fun loadScaledIcon(resId: Int): BitmapDescriptor {
+                    val bmp =
+                        android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                    val scaled =
+                        android.graphics.Bitmap.createScaledBitmap(bmp, sizePx, sizePx, false)
+                    return BitmapDescriptorFactory.fromBitmap(scaled)
+                }
+
+                customNoteIcon = loadScaledIcon(R.drawable.pin_note)
+                customPhotoIcon = loadScaledIcon(R.drawable.pin_photo)
+                customBothIcon = loadScaledIcon(R.drawable.pin_note_photo)
+
+                android.util.Log.d("TripMap", "Icone personalizzate caricate correttamente")
+            } catch (e: Exception) {
+                android.util.Log.e("TripMap", "Errore caricamento icone marker", e)
+                val fallback =
+                    BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                customNoteIcon = fallback
+                customPhotoIcon = fallback
+                customBothIcon = fallback
+            }
+        },
         onMapClick = { latLng ->
             val thresholdMeters = 20.0
             val clickedJourneyIndex = alljourneyPoints.indexOfFirst { path ->
@@ -458,7 +491,7 @@ fun TripMap(
                 selectedLatLng = latLng
                 showMainDialog = true
             }
-        }
+        },
     ) {
 
         alljourneyPoints.forEachIndexed { index, path ->
@@ -480,10 +513,21 @@ fun TripMap(
         }
 
         markers.forEachIndexed { index, marker ->
+            val hasNote = !marker.note.isNullOrEmpty()
+            val hasPhoto = !marker.photoPath.isNullOrEmpty()
+
+            val iconToUse = when {
+                hasNote && hasPhoto -> customBothIcon
+                hasNote -> customNoteIcon
+                hasPhoto -> customPhotoIcon
+                else -> BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+            }
+
             Marker(
                 state = MarkerState(LatLng(marker.latitude, marker.longitude)),
                 title = "Ricordo #${index + 1}",
                 snippet = marker.note ?: "",
+                icon = iconToUse,
                 onClick = {
                     selectedMarker = marker
                     showMarkerDialog = true
@@ -491,6 +535,7 @@ fun TripMap(
                 }
             )
         }
+
     }
 
     if (showJourneyDialog && selectedJourney != null) {
