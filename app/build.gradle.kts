@@ -61,6 +61,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     //map compose
     implementation("com.google.maps.android:maps-compose:2.14.0")
+    implementation("com.google.maps.android:maps-utils-ktx:5.1.1")
 
     //maps
     implementation("com.google.android.gms:play-services-maps:18.1.0")
