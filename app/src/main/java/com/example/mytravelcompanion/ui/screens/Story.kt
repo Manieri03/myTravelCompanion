@@ -9,10 +9,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -106,49 +110,88 @@ fun Story() {
             }
 
             var searchDestination by remember { mutableStateOf("") }
+            var selectedStartDate by remember { mutableStateOf<LocalDate?>(null) }
+            var showStartModal by remember { mutableStateOf(false) }
+            val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+            var filtersExpanded by remember { mutableStateOf(false) }
 
-            Column (
-                modifier=Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(15.dp)
-            ){
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clickable { filtersExpanded = !filtersExpanded }
+                        .padding(vertical = 8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Icona filtri",
+                        imageVector = if (filtersExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (filtersExpanded) "Nascondi filtri" else "Mostra filtri",
                         tint = ciano,
-                        modifier = Modifier
-                            .size(26.dp)
-                            .padding(end = 6.dp)
+                        modifier = Modifier.size(28.dp)
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "Filtri",
-                        fontSize = 20.sp,
                         style = myTipography2.labelMedium,
+                        fontSize = 20.sp,
                         color = ciano
                     )
                 }
 
-                OutlinedTextField(
-                    value = searchDestination,
-                    onValueChange = { newValue ->
-                        searchDestination = newValue
-                    },
-                    placeholder = {
-                        Text(
-                            "Cerca destinazione...",
-                            style = myTipography2.bodyLarge
+                // Colonna filtri animata
+                androidx.compose.animation.AnimatedVisibility(visible = filtersExpanded) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(13.dp)
+                    ) {
+                        //Ricerca destinazione
+                        OutlinedTextField(
+                            value = searchDestination,
+                            onValueChange = { searchDestination = it },
+                            placeholder = { Text("Cerca destinazione...", style = myTipography2.bodyLarge) },
+                            textStyle = myTipography2.bodyLarge,
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
                         )
-                    },
-                    textStyle = myTipography2.bodyLarge,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    singleLine = true,
-                )
 
+                        // Filtro data
+                        OutlinedTextField(
+                            value = selectedStartDate?.format(formatter) ?: "",
+                            onValueChange = {},
+                            label = { Text("Data partenza") },
+                            modifier = Modifier.fillMaxWidth(),
+                            readOnly = true,
+                            trailingIcon = {
+                                IconButton(onClick = { showStartModal = true }) {
+                                    Icon(Icons.Default.DateRange, contentDescription = "Seleziona data")
+                                }
+                            }
+                        )
+                        if (showStartModal) {
+                            DatePickerModal(
+                                onDateSelected = { selectedStartDate = it },
+                                onDismiss = { showStartModal = false }
+                            )
+                        }
+
+                        // Reset filtri
+                        Button(
+                            onClick = {
+                                searchDestination = ""
+                                selectedStartDate = null
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = ciano),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(45.dp)
+                        ) {
+                            Text("Reset filtri", style = myTipography2.bodyLarge)
+                        }
+                    }
+                }
             }
 
             if (pastTrips.isEmpty()) {
@@ -164,8 +207,8 @@ fun Story() {
             } else {
 
                 val filteredTrips = pastTrips.filter { trip ->
-                    searchDestination.isBlank() ||
-                            trip.destination.lowercase().contains(searchDestination.lowercase())
+                    (searchDestination.isBlank() || trip.destination.contains(searchDestination, ignoreCase = true)) &&
+                            (selectedStartDate == null || trip.startDate == selectedStartDate)
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {

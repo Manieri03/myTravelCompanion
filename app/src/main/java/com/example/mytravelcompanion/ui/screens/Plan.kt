@@ -102,7 +102,7 @@ fun Plan() {
             Column(
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Destinazione
+
                 OutlinedTextField(
                     maxLines = 1,
                     value = destination,
