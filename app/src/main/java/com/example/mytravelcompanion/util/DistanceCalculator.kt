@@ -27,14 +27,34 @@ object DistanceCalculator {
     }
 
     fun distanceToSegment(p: LatLngSerializable, v: LatLngSerializable, w: LatLngSerializable): Double {
-        val l2 = distanceBetween(v, w).pow(2)
-        if (l2 == 0.0) return distanceBetween(p, v)
-        val t = max(0.0, min(1.0,
-            ((p.lat - v.lat) * (w.lat - v.lat) + (p.lng - v.lng) * (w.lng - v.lng)) / l2))
-        val projection = LatLngSerializable(
-            v.lat + t * (w.lat - v.lat),
-            v.lng + t * (w.lng - v.lng)
-        )
-        return distanceBetween(p, projection)
+        val segmentLength = distanceBetween(v, w)
+        if (segmentLength < 1e-6) return distanceBetween(p, v)
+
+        val midLat = (v.lat + w.lat) / 2.0
+        val midLng = (v.lng + w.lng) / 2.0
+
+        val metersPerDegreeLat = EARTH_RADIUS * Math.PI / 180.0
+        val metersPerDegreeLng = metersPerDegreeLat * cos(Math.toRadians(midLat))
+        fun toLocalMeters(point: LatLngSerializable): Pair<Double, Double> {
+            val x = (point.lng - midLng) * metersPerDegreeLng
+            val y = (point.lat - midLat) * metersPerDegreeLat
+            return Pair(x, y)
+        }
+
+        val (px, py) = toLocalMeters(p)
+        val (vx, vy) = toLocalMeters(v)
+        val (wx, wy) = toLocalMeters(w)
+
+        val dx = wx - vx
+        val dy = wy - vy
+        val l2 = dx * dx + dy * dy
+        val t = max(0.0, min(1.0, ((px - vx) * dx + (py - vy) * dy) / l2))
+
+        val projX = vx + t * dx
+        val projY = vy + t * dy
+
+        val distX = px - projX
+        val distY = py - projY
+        return sqrt(distX * distX + distY * distY)
     }
 }

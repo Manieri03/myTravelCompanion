@@ -135,7 +135,7 @@ class TripViewModel(private val dao: TripDao,
             )
 
             // Ignoro salti improvvisi (per debug posizione simulata)
-            if (delta > 1000) {
+            if (delta > 100) {
                 android.util.Log.w("TripVM", "Salto anomalo di ${"%.2f".format(delta)} m — punto ignorato")
                 return
             }
