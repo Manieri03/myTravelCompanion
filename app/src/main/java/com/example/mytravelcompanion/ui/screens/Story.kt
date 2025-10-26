@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -101,6 +105,52 @@ fun Story() {
                 )
             }
 
+            var searchDestination by remember { mutableStateOf("") }
+
+            Column (
+                modifier=Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(15.dp)
+            ){
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Icona filtri",
+                        tint = ciano,
+                        modifier = Modifier
+                            .size(26.dp)
+                            .padding(end = 6.dp)
+                    )
+                    Text(
+                        "Filtri",
+                        fontSize = 20.sp,
+                        style = myTipography2.labelMedium,
+                        color = ciano
+                    )
+                }
+
+                OutlinedTextField(
+                    value = searchDestination,
+                    onValueChange = { newValue ->
+                        searchDestination = newValue
+                    },
+                    placeholder = {
+                        Text(
+                            "Cerca destinazione...",
+                            style = myTipography2.bodyLarge
+                        )
+                    },
+                    textStyle = myTipography2.bodyLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    singleLine = true,
+                )
+
+            }
+
             if (pastTrips.isEmpty()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -112,8 +162,14 @@ fun Story() {
                     )
                 }
             } else {
+
+                val filteredTrips = pastTrips.filter { trip ->
+                    searchDestination.isBlank() ||
+                            trip.destination.lowercase().contains(searchDestination.lowercase())
+                }
+
                 Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    pastTrips.forEach { trip ->
+                    filteredTrips.forEach { trip ->
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
