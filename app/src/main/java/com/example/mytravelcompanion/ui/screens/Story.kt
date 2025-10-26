@@ -35,6 +35,8 @@ import com.example.mytravelcompanion.data.TripViewModel
 import com.example.mytravelcompanion.data.TripViewModelFactory
 import com.example.mytravelcompanion.ui.theme.ciano
 import com.example.mytravelcompanion.ui.theme.myTipography2
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
@@ -204,6 +206,10 @@ fun TripMapPreview(
     var selectedMarker by remember { mutableStateOf<com.example.mytravelcompanion.data.Marker?>(null) }
     var showMarkerDialog by remember { mutableStateOf(false) }
 
+    var customNoteIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+    var customPhotoIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+    var customBothIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+
     LaunchedEffect(tripId) {
         val tripMarkers = tripViewModel.getMarkersForTrip(tripId.toInt())
         markers.clear()
@@ -214,6 +220,7 @@ fun TripMapPreview(
         initialCamera = paths.flatten().firstOrNull()
             ?: tripMarkers.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
     }
+
 
     if (initialCamera == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -234,7 +241,35 @@ fun TripMapPreview(
             .clip(RoundedCornerShape(12.dp)),
         cameraPositionState = cameraPositionState,
         properties = MapProperties(isMyLocationEnabled = false),
-        uiSettings = MapUiSettings(zoomControlsEnabled = true)
+        uiSettings = MapUiSettings(zoomControlsEnabled = true),
+        onMapLoaded = {
+            try {
+                val sizeDp = 40
+                val density = context.resources.displayMetrics.density
+                val sizePx = (sizeDp * density).toInt()
+
+                fun loadScaledIcon(resId: Int): BitmapDescriptor {
+                    val bmp =
+                        android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                    val scaled =
+                        android.graphics.Bitmap.createScaledBitmap(bmp, sizePx, sizePx, false)
+                    return BitmapDescriptorFactory.fromBitmap(scaled)
+                }
+
+                customNoteIcon = loadScaledIcon(R.drawable.pin_note)
+                customPhotoIcon = loadScaledIcon(R.drawable.pin_photo)
+                customBothIcon = loadScaledIcon(R.drawable.pin_note_photo)
+
+                android.util.Log.d("TripMap", "Icone personalizzate caricate correttamente")
+            } catch (e: Exception) {
+                android.util.Log.e("TripMap", "Errore caricamento icone marker", e)
+                val fallback =
+                    BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                customNoteIcon = fallback
+                customPhotoIcon = fallback
+                customBothIcon = fallback
+            }
+        }
     ) {
 
         for (path in journeyPoints) {
@@ -242,16 +277,27 @@ fun TripMapPreview(
                 com.google.maps.android.compose.Polyline(
                     points = path,
                     color = ciano.copy(alpha = 0.7f),
-                    width = 8f
+                    width = 15f
                 )
             }
         }
 
         markers.forEachIndexed { index, marker ->
+            val hasNote = !marker.note.isNullOrEmpty()
+            val hasPhoto = !marker.photoPath.isNullOrEmpty()
+
+            val customIcon = when {
+                hasNote && hasPhoto -> customBothIcon
+                hasNote -> customNoteIcon
+                hasPhoto -> customPhotoIcon
+                else -> BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+            }
+
             Marker(
                 state = MarkerState(LatLng(marker.latitude, marker.longitude)),
                 title = "Ricordo #${index + 1}",
                 snippet = marker.note ?: "",
+                icon = customIcon,
                 onClick = {
                     selectedMarker = marker
                     showMarkerDialog = true
