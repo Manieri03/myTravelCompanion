@@ -1,8 +1,10 @@
 package com.example.mytravelcompanion.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,14 +39,45 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.Year
 
 @Composable
 fun Graphics() {
+    val context = LocalContext.current
+    val tripDao = AppDatabase.getDatabase(context).tripDao()
+    var monthlyTripCount by remember { mutableStateOf(List(12) { 0 }) }
+    var loading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val trips = tripDao.getAllTripsOnce()
+            val counts = MutableList(12) { 0 }
+
+            val currentYear = Year.now().value
+            trips.forEach { trip ->
+                trip.startDate?.let { date ->
+                    if (date.year == currentYear) {
+                        val monthIndex = date.monthValue - 1
+                        counts[monthIndex] += 1
+                    }
+                }
+            }
+
+            monthlyTripCount = counts
+            loading = false
+        }
+    }
+
+    val verticalScrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 18.dp, end = 18.dp, top = 55.dp, bottom = 18.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 55.dp, bottom = 18.dp)
+            .verticalScroll(verticalScrollState),
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         Row(
@@ -71,11 +104,23 @@ fun Graphics() {
             )
         }
 
+
+
         Column(
             modifier=Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(15.dp)
+            verticalArrangement = Arrangement.spacedBy(25.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Text("Heat map dei tuoi percorsi", style=myTipography2.labelMedium)
             JourneyHeatmapScreen()
+            if (loading) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text("Caricamento grafico...", style = myTipography2.bodyLarge)
+                }
+            } else {
+                Text("Numero di viaggi", style=myTipography2.labelMedium)
+                MonthlyTripsChart(monthlyTripCount)
+            }
         }
 
 
@@ -153,6 +198,42 @@ fun JourneyHeatmapScreen() {
                 .radius(30)
                 .build()
             map.addTileOverlay(TileOverlayOptions().tileProvider(provider))
+        }
+    }
+}
+
+@Composable
+fun MonthlyTripsChart(monthlyTripCount: List<Int>) {
+    val max = monthlyTripCount.maxOrNull()?.toFloat() ?: 1f
+    val scrollState = rememberScrollState()
+
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .horizontalScroll(scrollState),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        monthlyTripCount.forEachIndexed { index, count ->
+            val heightRatio = (count / max)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom,
+                modifier = Modifier.width(40.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .height(150.dp * heightRatio)
+                        .width(20.dp)
+                        .border(1.dp, ciano)
+                        .background(ciano)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(java.text.DateFormatSymbols().shortMonths[index], fontSize = 10.sp)
+                Text(count.toString(), fontSize = 10.sp)
+            }
         }
     }
 }
