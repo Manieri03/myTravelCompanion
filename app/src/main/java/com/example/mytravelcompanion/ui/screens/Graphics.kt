@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.data.AppDatabase
+import com.example.mytravelcompanion.data.Trip
 import com.example.mytravelcompanion.ui.theme.ciano
 import com.example.mytravelcompanion.ui.theme.myTipography2
 import com.google.android.gms.maps.model.CameraPosition
@@ -40,9 +41,14 @@ import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.Year
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun Graphics() {
@@ -134,24 +140,52 @@ fun JourneyHeatmapScreen() {
 
     var heatmapPoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
+    var showLastMonthOnly by remember { mutableStateOf(false) }
+    val now = LocalDate.now()
+    val firstDayOfMonth = now.withDayOfMonth(1)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = if (showLastMonthOnly) "Mostra tutti" else "Mostra ultimo mese",
+            modifier = Modifier
+                .clickable { showLastMonthOnly = !showLastMonthOnly }
+                .padding(8.dp)
+                .border(1.dp, ciano, RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
 
     // Carica i percorsi di tutti i journey dal DB
-    LaunchedEffect(Unit) {
+    LaunchedEffect(showLastMonthOnly) {
+        loading = true
         withContext(Dispatchers.IO) {
             val gson = Gson()
             val journeys = journeyDAO.getAllJourneys()
             val allPoints = mutableListOf<LatLng>()
 
+            val now = LocalDate.now()
+            val firstDayOfMonth = now.withDayOfMonth(1)
             journeys.forEach { journey ->
                 if (!journey.path.isNullOrEmpty()) {
-                    try {
-                        val points = gson.fromJson(
-                            journey.path,
-                            Array<com.example.mytravelcompanion.data.LatLngSerializable>::class.java
-                        ).map { LatLng(it.lat, it.lng) }
-                        allPoints.addAll(points)
-                    } catch (e: Exception) {
-                        android.util.Log.e("Heatmap", "Errore parsing percorso ${journey.id}: ${e.message}")
+                    // converto il Long in LocalDate
+                    val journeyDate = journey.start?.let {
+                        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                    }
+
+                    // filtro per ultimo mese
+                    if (!showLastMonthOnly || (journeyDate != null && !journeyDate.isBefore(firstDayOfMonth))) {
+                        try {
+                            val points = gson.fromJson(
+                                journey.path,
+                                Array<com.example.mytravelcompanion.data.LatLngSerializable>::class.java
+                            ).map { LatLng(it.lat, it.lng) }
+                            allPoints.addAll(points)
+                        } catch (e: Exception) {
+                            android.util.Log.e("Heatmap", "Errore parsing percorso ${journey.id}: ${e.message}")
+                        }
                     }
                 }
             }
@@ -204,10 +238,53 @@ fun JourneyHeatmapScreen() {
 
 @Composable
 fun MonthlyTripsChart(monthlyTripCount: List<Int>) {
+    val context=LocalContext.current
     val max = monthlyTripCount.maxOrNull()?.toFloat() ?: 1f
     val scrollState = rememberScrollState()
+    val tripDao = AppDatabase.getDatabase(context).tripDao()
 
+    var selectedMonthIndex by remember { mutableStateOf<Int?>(null) }
+    var monthTrips by remember { mutableStateOf<List<Trip>>(emptyList()) }
+    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale("it"))
 
+    LaunchedEffect(selectedMonthIndex) {
+        selectedMonthIndex?.let { monthIndex ->
+            val year = Year.now().value
+            val month = monthIndex + 1 // da 0–11 a 1–12
+
+            val firstDay = LocalDate.of(year, month, 1)
+            val lastDay = YearMonth.of(year, month).atEndOfMonth()
+
+            monthTrips = withContext(Dispatchers.IO) {
+                tripDao.getTripsForMonth(firstDay, lastDay)
+            }
+        }
+    }
+
+    // Dialog
+    selectedMonthIndex?.let { monthIndex ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { selectedMonthIndex = null },
+            title = { Text("Viaggi di ${java.text.DateFormatSymbols().months[monthIndex]}", style=myTipography2.titleLarge) },
+            text = {
+                if (monthTrips.isEmpty()) {
+                    Text("Nessun viaggio registrato", style=myTipography2.labelMedium)
+                } else {
+                    Column {
+                        monthTrips.forEach { trip ->
+                            val formattedDate = trip.startDate?.format(formatter) ?: ""
+                            Text("- ${trip.destination} ($formattedDate)", style=myTipography2.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { selectedMonthIndex = null }) {
+                    Text("Chiudi")
+                }
+            }
+        )
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,6 +299,7 @@ fun MonthlyTripsChart(monthlyTripCount: List<Int>) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom,
                 modifier = Modifier.width(40.dp)
+                    .clickable { selectedMonthIndex = index }
             ) {
                 Box(
                     modifier = Modifier

@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 @Dao
 interface TripDao {
@@ -27,4 +28,9 @@ interface TripDao {
     @Query("UPDATE trips SET isCompleted = 1 WHERE id = :tripId")
     suspend fun markTripAsCompleted(tripId: Int)
 
+    @Query("""
+    SELECT * FROM trips 
+    WHERE startDate >= :firstDay AND startDate <= :lastDay
+""")
+    suspend fun getTripsForMonth(firstDay: LocalDate, lastDay: LocalDate): List<Trip>
 }
