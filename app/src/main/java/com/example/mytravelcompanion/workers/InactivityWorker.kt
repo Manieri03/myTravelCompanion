@@ -25,8 +25,8 @@ class InactivityWorker(
 
         val builder = NotificationCompat.Builder(applicationContext, "trip_channel")
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Il tuo compagno di viaggio ti chiama...")
-            .setContentText("Rivedi i tuoi viaggi, o fanne uno nuovo!")
+            .setContentTitle("Il tuo compagno di viaggio")
+            .setContentText("Rivedi le tue avventure o preparati per la prossima!")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
 

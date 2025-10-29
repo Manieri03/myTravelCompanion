@@ -11,6 +11,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -39,6 +41,7 @@ class MainActivity : ComponentActivity() {
         createNotificationChannel()
         scheduleInactivityCheck()
 
+
         setContent {
             MyTravelCompanionTheme {
                 val context = LocalContext.current
@@ -52,6 +55,12 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
                     tripViewModel.checkAndUpdateTripCompletion()
+
+                    val days = tripViewModel.daysSinceLastCompletedTrip()
+                    //1 per debug, 10 più sensato
+                    if (days != null && days >= 1) {
+                        sendInactivityNotification()
+                    }
                 }
 
                 NavHost()
@@ -69,6 +78,26 @@ class MainActivity : ComponentActivity() {
             workRequest
         )
     }
+
+    private fun sendInactivityNotification() {
+        val builder = NotificationCompat.Builder(this, "trip_channel")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("È ora di viaggiare di nuovo!")
+            .setContentText("Sono passati più di 10 giorni dall'ultimo viaggio. Scopri nuove avventure!")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+
+        val notificationManager = NotificationManagerCompat.from(this)
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationManager.notify(3001, builder.build())
+        }
+    }
+
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

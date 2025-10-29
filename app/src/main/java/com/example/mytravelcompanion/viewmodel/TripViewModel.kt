@@ -282,6 +282,12 @@ class TripViewModel(private val dao: TripDao,
     }
 
 
+    suspend fun daysSinceLastCompletedTrip(): Long? {
+        val lastEndDateStr = dao.getLastCompletedTripEndDate() ?: return null
+        val lastEndDate = LocalDate.parse(lastEndDateStr)
+        return java.time.temporal.ChronoUnit.DAYS.between(lastEndDate, LocalDate.now())
+    }
+
 
 
 }

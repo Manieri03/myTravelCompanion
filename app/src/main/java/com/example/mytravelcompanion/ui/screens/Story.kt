@@ -346,10 +346,10 @@ fun TripMapPreview(
         val paths = tripViewModel.allJourneyPoints.first()
         initialCamera = paths.flatten().firstOrNull()
             ?: tripMarkers.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
-                    ?: LatLng(41.9028, 12.4964)
+                    ?: LatLng(44.4949, 11.3426)
     }
 
-    val defaultLocation = LatLng(41.9028, 12.4964)
+    val defaultLocation = LatLng(44.4949, 11.3426)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(defaultLocation, 13f)
     }
