@@ -43,6 +43,7 @@ import com.example.mytravelcompanion.data.TripViewModel
 import com.example.mytravelcompanion.data.TripViewModelFactory
 import com.example.mytravelcompanion.ui.theme.ciano
 import com.example.mytravelcompanion.ui.theme.myTipography2
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -337,7 +338,7 @@ fun TripMapPreview(
 
     // Caricamento iniziale dati
     LaunchedEffect(tripId) {
-        val tripMarkers = tripViewModel.getMarkersForTrip(tripId.toInt())
+        val tripMarkers = tripViewModel.getMarkersForTrip(tripId)
         markers.clear()
         markers.addAll(tripMarkers)
         tripViewModel.loadJourneysForTrip(tripId)
@@ -345,17 +346,18 @@ fun TripMapPreview(
         val paths = tripViewModel.allJourneyPoints.first()
         initialCamera = paths.flatten().firstOrNull()
             ?: tripMarkers.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
+                    ?: LatLng(41.9028, 12.4964)
     }
 
-    if (initialCamera == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Caricamento mappa...", style = myTipography2.bodyLarge)
-        }
-        return
-    }
-
+    val defaultLocation = LatLng(41.9028, 12.4964)
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(initialCamera!!, 13f)
+        position = CameraPosition.fromLatLngZoom(defaultLocation, 13f)
+    }
+
+    LaunchedEffect(initialCamera) {
+        initialCamera?.let { cam ->
+            cameraPositionState.move(CameraUpdateFactory.newLatLngZoom(cam, 13f))
+        }
     }
 
     Box(

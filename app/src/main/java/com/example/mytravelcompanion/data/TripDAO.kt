@@ -33,4 +33,8 @@ interface TripDao {
     WHERE startDate >= :firstDay AND startDate <= :lastDay
 """)
     suspend fun getTripsForMonth(firstDay: LocalDate, lastDay: LocalDate): List<Trip>
+
+    @Query("SELECT endDate FROM trips WHERE isCompleted = 1 ORDER BY endDate DESC LIMIT 1")
+    suspend fun getLastCompletedTripEndDate(): String?
+
 }
