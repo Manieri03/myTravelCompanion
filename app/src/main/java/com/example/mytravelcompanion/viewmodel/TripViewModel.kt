@@ -258,6 +258,30 @@ class TripViewModel(private val dao: TripDao,
         }
     }
 
+    suspend fun getTotalDistanceForTrip(tripId: Int): Double = withContext(Dispatchers.IO) {
+        val journeys = journeyDao.getJourneysForTrip(tripId)
+        val gson = Gson()
+        var totalDistance = 0.0
+
+        for (journey in journeys) {
+            if (!journey.path.isNullOrEmpty()) {
+                try {
+                    val points = gson.fromJson(
+                        journey.path,
+                        Array<LatLngSerializable>::class.java
+                    ).toList()
+
+                    totalDistance += DistanceCalculator.totalDistance(points)
+                } catch (e: Exception) {
+                    android.util.Log.e("TripVM", "Errore calcolo distanza viaggio ${journey.id}: ${e.message}")
+                }
+            }
+        }
+
+        totalDistance / 1000.0
+    }
+
+
 
 
 }

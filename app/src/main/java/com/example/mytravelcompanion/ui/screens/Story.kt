@@ -225,11 +225,19 @@ fun Story() {
             }
         }
     }else{
+        var totalDistanceKm by remember { mutableStateOf<Double?>(null) }
+
+        LaunchedEffect(selectedTrip) {
+            selectedTrip?.let {
+                totalDistanceKm = tripViewModel.getTotalDistanceForTrip(it.id)
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(40.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -241,6 +249,20 @@ fun Story() {
                 tripViewModel = tripViewModel,
                 tripId = selectedTrip!!.id
             )
+
+            Row(
+                modifier=Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally)
+            ) {
+
+                totalDistanceKm?.let {
+                    Text(
+                        text = "Distanza totale percorsa: ${"%.2f".format(it)} km",
+                        style = myTipography2.titleMedium,
+                        color = ciano
+                    )
+                }
+            }
 
             Row(
                 modifier=Modifier.fillMaxWidth(),
@@ -300,15 +322,20 @@ fun TripMapPreview(
     val context = LocalContext.current
     val markers = remember { mutableStateListOf<com.example.mytravelcompanion.data.Marker>() }
     val journeyPoints by tripViewModel.allJourneyPoints.collectAsState()
+    val journeys by tripViewModel.journeys.collectAsState()
 
     var initialCamera by remember { mutableStateOf<LatLng?>(null) }
     var selectedMarker by remember { mutableStateOf<com.example.mytravelcompanion.data.Marker?>(null) }
     var showMarkerDialog by remember { mutableStateOf(false) }
 
+    var selectedJourney by remember { mutableStateOf<com.example.mytravelcompanion.data.Journey?>(null) }
+    var showJourneyDialog by remember { mutableStateOf(false) }
+
     var customNoteIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     var customPhotoIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     var customBothIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
 
+    // Caricamento iniziale dati
     LaunchedEffect(tripId) {
         val tripMarkers = tripViewModel.getMarkersForTrip(tripId.toInt())
         markers.clear()
@@ -319,7 +346,6 @@ fun TripMapPreview(
         initialCamera = paths.flatten().firstOrNull()
             ?: tripMarkers.firstOrNull()?.let { LatLng(it.latitude, it.longitude) }
     }
-
 
     if (initialCamera == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -332,141 +358,187 @@ fun TripMapPreview(
         position = CameraPosition.fromLatLngZoom(initialCamera!!, 13f)
     }
 
-    GoogleMap(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(400.dp)
             .border(2.dp, ciano, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp)),
-        cameraPositionState = cameraPositionState,
-        properties = MapProperties(isMyLocationEnabled = false),
-        uiSettings = MapUiSettings(zoomControlsEnabled = true),
-        onMapLoaded = {
-            try {
-                val sizeDp = 40
-                val density = context.resources.displayMetrics.density
-                val sizePx = (sizeDp * density).toInt()
+            .clip(RoundedCornerShape(12.dp))
+    ) {
+        GoogleMap(
+            modifier = Modifier.matchParentSize(),
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(isMyLocationEnabled = false),
+            uiSettings = MapUiSettings(zoomControlsEnabled = true),
+            onMapLoaded = {
+                try {
+                    val sizeDp = 40
+                    val density = context.resources.displayMetrics.density
+                    val sizePx = (sizeDp * density).toInt()
 
-                fun loadScaledIcon(resId: Int): BitmapDescriptor {
-                    val bmp =
-                        android.graphics.BitmapFactory.decodeResource(context.resources, resId)
-                    val scaled =
-                        android.graphics.Bitmap.createScaledBitmap(bmp, sizePx, sizePx, false)
-                    return BitmapDescriptorFactory.fromBitmap(scaled)
+                    fun loadScaledIcon(resId: Int): BitmapDescriptor {
+                        val bmp =
+                            android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                        val scaled =
+                            android.graphics.Bitmap.createScaledBitmap(bmp, sizePx, sizePx, false)
+                        return BitmapDescriptorFactory.fromBitmap(scaled)
+                    }
+
+                    customNoteIcon = loadScaledIcon(R.drawable.pin_note)
+                    customPhotoIcon = loadScaledIcon(R.drawable.pin_photo)
+                    customBothIcon = loadScaledIcon(R.drawable.pin_note_photo)
+                } catch (e: Exception) {
+                    val fallback =
+                        BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                    customNoteIcon = fallback
+                    customPhotoIcon = fallback
+                    customBothIcon = fallback
+                }
+            },
+            onMapClick = { latLng ->
+                val thresholdMeters = 20.0
+                val clickedJourneyIndex = journeyPoints.indexOfFirst { path ->
+                    path.zipWithNext().any { (a, b) ->
+                        val distToSegment = com.example.mytravelcompanion.util.DistanceCalculator.distanceToSegment(
+                            com.example.mytravelcompanion.data.LatLngSerializable(latLng.latitude, latLng.longitude),
+                            com.example.mytravelcompanion.data.LatLngSerializable(a.latitude, a.longitude),
+                            com.example.mytravelcompanion.data.LatLngSerializable(b.latitude, b.longitude)
+                        )
+                        distToSegment < thresholdMeters
+                    }
+                }
+                if (clickedJourneyIndex != -1) {
+                    selectedJourney = journeys.getOrNull(clickedJourneyIndex)
+                    showJourneyDialog = true
+                }
+            }
+        ) {
+            //journeys
+            for (path in journeyPoints) {
+                if (path.isNotEmpty()) {
+                    com.google.maps.android.compose.Polyline(
+                        points = path,
+                        color = ciano.copy(alpha = 0.7f),
+                        width = 15f
+                    )
+                }
+            }
+
+            //markers
+            markers.forEachIndexed { index, marker ->
+                val hasNote = !marker.note.isNullOrEmpty()
+                val hasPhoto = !marker.photoPath.isNullOrEmpty()
+
+                val customIcon = when {
+                    hasNote && hasPhoto -> customBothIcon
+                    hasNote -> customNoteIcon
+                    hasPhoto -> customPhotoIcon
+                    else -> BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
                 }
 
-                customNoteIcon = loadScaledIcon(R.drawable.pin_note)
-                customPhotoIcon = loadScaledIcon(R.drawable.pin_photo)
-                customBothIcon = loadScaledIcon(R.drawable.pin_note_photo)
-
-                android.util.Log.d("TripMap", "Icone personalizzate caricate correttamente")
-            } catch (e: Exception) {
-                android.util.Log.e("TripMap", "Errore caricamento icone marker", e)
-                val fallback =
-                    BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
-                customNoteIcon = fallback
-                customPhotoIcon = fallback
-                customBothIcon = fallback
-            }
-        }
-    ) {
-
-        for (path in journeyPoints) {
-            if (path.isNotEmpty()) {
-                com.google.maps.android.compose.Polyline(
-                    points = path,
-                    color = ciano.copy(alpha = 0.7f),
-                    width = 15f
+                Marker(
+                    state = MarkerState(LatLng(marker.latitude, marker.longitude)),
+                    title = "Ricordo #${index + 1}",
+                    snippet = marker.note ?: "",
+                    icon = customIcon,
+                    onClick = {
+                        selectedMarker = marker
+                        showMarkerDialog = true
+                        true
+                    }
                 )
             }
         }
 
-        markers.forEachIndexed { index, marker ->
-            val hasNote = !marker.note.isNullOrEmpty()
-            val hasPhoto = !marker.photoPath.isNullOrEmpty()
+        // dialogs
 
-            val customIcon = when {
-                hasNote && hasPhoto -> customBothIcon
-                hasNote -> customNoteIcon
-                hasPhoto -> customPhotoIcon
-                else -> BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
-            }
-
-            Marker(
-                state = MarkerState(LatLng(marker.latitude, marker.longitude)),
-                title = "Ricordo #${index + 1}",
-                snippet = marker.note ?: "",
-                icon = customIcon,
-                onClick = {
-                    selectedMarker = marker
-                    showMarkerDialog = true
-                    true
+        if (showJourneyDialog && selectedJourney != null) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {
+                    showJourneyDialog = false
+                    selectedJourney = null
+                },
+                title = { Text("Dettagli percorso", style = myTipography2.titleLarge) },
+                text = {
+                    val km = selectedJourney!!.distanceMeters?.div(1000)
+                    val duration = selectedJourney!!.durationSeconds
+                    val minutes = duration?.div(60)
+                    val seconds = duration?.rem(60)
+                    Column {
+                        Text("Distanza: ${"%.2f".format(km)} km", style = myTipography2.bodyLarge)
+                        Text("Durata: ${minutes} min ${seconds} sec", style = myTipography2.bodyLarge)
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        showJourneyDialog = false
+                        selectedJourney = null
+                    }) { Text("Chiudi", color = ciano) }
                 }
             )
         }
-    }
 
-    if (showMarkerDialog && selectedMarker != null) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = {
-                showMarkerDialog = false
-                selectedMarker = null
-            },
-            title = { Text("Dettagli ricordo", style = myTipography2.titleLarge) },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    val note = selectedMarker?.note
-                    val photoPath = selectedMarker?.photoPath
-                    val context = LocalContext.current
+        if (showMarkerDialog && selectedMarker != null) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {
+                    showMarkerDialog = false
+                    selectedMarker = null
+                },
+                title = { Text("Dettagli ricordo", style = myTipography2.titleLarge) },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        val note = selectedMarker?.note
+                        val photoPath = selectedMarker?.photoPath
 
-                    if (note.isNullOrEmpty() && photoPath.isNullOrEmpty()) {
-                        Text(
-                            text = "Non ci sono note o foto associate a questo ricordo.",
-                            style = myTipography2.bodyLarge,
-                            color = ciano
-                        )
-                    } else {
-                        note?.takeIf { it.isNotEmpty() }?.let {
-                            Text(it, style = myTipography2.bodyLarge)
-                        }
+                        if (note.isNullOrEmpty() && photoPath.isNullOrEmpty()) {
+                            Text(
+                                "Non ci sono note o foto associate a questo ricordo.",
+                                style = myTipography2.bodyLarge,
+                                color = ciano
+                            )
+                        } else {
+                            note?.takeIf { it.isNotEmpty() }?.let {
+                                Text(it, style = myTipography2.bodyLarge)
+                            }
 
-                        photoPath?.let { path ->
-                            val bitmap = try {
-                                if (path.startsWith("content://")) {
-                                    val stream = context.contentResolver.openInputStream(android.net.Uri.parse(path))
-                                    android.graphics.BitmapFactory.decodeStream(stream).also { stream?.close() }
-                                } else {
-                                    android.graphics.BitmapFactory.decodeFile(path)
+                            photoPath?.let { path ->
+                                val bitmap = try {
+                                    if (path.startsWith("content://")) {
+                                        val stream = context.contentResolver.openInputStream(android.net.Uri.parse(path))
+                                        android.graphics.BitmapFactory.decodeStream(stream).also { stream?.close() }
+                                    } else {
+                                        android.graphics.BitmapFactory.decodeFile(path)
+                                    }
+                                } catch (e: Exception) { null }
+
+                                bitmap?.let {
+                                    Image(
+                                        bitmap = it.asImageBitmap(),
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp)
+                                            .border(2.dp, ciano, RoundedCornerShape(16.dp))
+                                            .clip(RoundedCornerShape(16.dp))
+                                    )
                                 }
-                            } catch (e: Exception) { null }
-
-                            bitmap?.let {
-                                Image(
-                                    bitmap = it.asImageBitmap(),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp)
-                                        .border(2.dp, ciano, RoundedCornerShape(16.dp))
-                                        .clip(RoundedCornerShape(16.dp))
-                                )
                             }
                         }
                     }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            showMarkerDialog = false
+                            selectedMarker = null
+                        }
+                    ) { Text("Chiudi", style = myTipography2.bodyLarge, color = ciano) }
                 }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        showMarkerDialog = false
-                        selectedMarker = null
-                    }
-                ) { Text("Chiudi", style = myTipography2.bodyLarge, color = ciano) }
-            }
-        )
+            )
+        }
     }
 }
 

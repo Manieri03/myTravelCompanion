@@ -298,7 +298,11 @@ fun TripMap(
 
     var startLatLng by remember { mutableStateOf<LatLng?>(null) }
     val journeyPoints by tripViewModel.journeyPoints.collectAsState()
-    var selectedJourney by remember { mutableStateOf<com.example.mytravelcompanion.data.Journey?>(null) }
+    var selectedJourney by remember {
+        mutableStateOf<com.example.mytravelcompanion.data.Journey?>(
+            null
+        )
+    }
     var showJourneyDialog by remember { mutableStateOf(false) }
 
     var customNoteIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
@@ -310,7 +314,8 @@ fun TripMap(
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             location?.let {
                 startLatLng = LatLng(it.latitude, it.longitude)
-                tripViewModel.lastKnownLocation = startLatLng // opzionale, se vuoi mantenerla nel ViewModel
+                tripViewModel.lastKnownLocation =
+                    startLatLng // opzionale, se vuoi mantenerla nel ViewModel
                 android.util.Log.d("TripMap", "Posizione iniziale: ${it.latitude}, ${it.longitude}")
             }
         }
@@ -370,10 +375,16 @@ fun TripMap(
                 userLocation = newLatLng
                 tripViewModel.lastKnownLocation = newLatLng
 
-                android.util.Log.d("TripMap", "Nuova posizione ricevuta: ${loc.latitude}, ${loc.longitude}")
+                android.util.Log.d(
+                    "TripMap",
+                    "Nuova posizione ricevuta: ${loc.latitude}, ${loc.longitude}"
+                )
 
                 if (isJourneyActive) {
-                    android.util.Log.d("TripMap", "Invio posizione al ViewModel per il percorso attivo")
+                    android.util.Log.d(
+                        "TripMap",
+                        "Invio posizione al ViewModel per il percorso attivo"
+                    )
                     tripViewModel.updateJourneyLocation(loc.latitude, loc.longitude)
                 } else {
                     android.util.Log.d("TripMap", "Journey NON attivo")
@@ -427,395 +438,382 @@ fun TripMap(
     val alljourneyPoints by tripViewModel.allJourneyPoints.collectAsState()
     val journeys by tripViewModel.journeys.collectAsState()
 
-    GoogleMap(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .border(
-                width = 2.dp,
-                color = blu,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .clip(RoundedCornerShape(12.dp)),
-        cameraPositionState = cameraPositionState,
-        properties = MapProperties(isMyLocationEnabled = true),
-        uiSettings = MapUiSettings(
-            zoomControlsEnabled = true,
-            myLocationButtonEnabled = true
-        ),
-        onMapLoaded = {
-            try {
-                val sizeDp = 40
-                val density = context.resources.displayMetrics.density
-                val sizePx = (sizeDp * density).toInt()
-
-                fun loadScaledIcon(resId: Int): BitmapDescriptor {
-                    val bmp =
-                        android.graphics.BitmapFactory.decodeResource(context.resources, resId)
-                    val scaled =
-                        android.graphics.Bitmap.createScaledBitmap(bmp, sizePx, sizePx, false)
-                    return BitmapDescriptorFactory.fromBitmap(scaled)
-                }
-
-                customNoteIcon = loadScaledIcon(R.drawable.pin_note)
-                customPhotoIcon = loadScaledIcon(R.drawable.pin_photo)
-                customBothIcon = loadScaledIcon(R.drawable.pin_note_photo)
-
-                android.util.Log.d("TripMap", "Icone personalizzate caricate correttamente")
-            } catch (e: Exception) {
-                android.util.Log.e("TripMap", "Errore caricamento icone marker", e)
-                val fallback =
-                    BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
-                customNoteIcon = fallback
-                customPhotoIcon = fallback
-                customBothIcon = fallback
-            }
-        },
-        onMapClick = { latLng ->
-            val thresholdMeters = 20.0
-            val clickedJourneyIndex = alljourneyPoints.indexOfFirst { path ->
-                path.zipWithNext().any { (a, b) ->
-                    val distToSegment = DistanceCalculator.distanceToSegment(
-                        LatLngSerializable(latLng.latitude, latLng.longitude),
-                        LatLngSerializable(a.latitude, a.longitude),
-                        LatLngSerializable(b.latitude, b.longitude)
-                    )
-                    distToSegment < thresholdMeters
-                }
-            }
-
-            if (clickedJourneyIndex != -1) {
-                selectedJourney = journeys.getOrNull(clickedJourneyIndex)
-                showJourneyDialog = true
-            } else {
-                // Se non ha cliccato su un percorso, apre il dialog normale
-                selectedLatLng = latLng
-                showMainDialog = true
-            }
-        },
+            .border(width = 2.dp, color = blu, shape = RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
     ) {
 
-        alljourneyPoints.forEachIndexed { index, path ->
-            if (path.isNotEmpty()) {
+        GoogleMap(
+            modifier = Modifier.matchParentSize(),
+            cameraPositionState = cameraPositionState,
+            properties = MapProperties(isMyLocationEnabled = true),
+            uiSettings = MapUiSettings(
+                zoomControlsEnabled = true,
+                myLocationButtonEnabled = true
+            ),
+            onMapLoaded = {
+                try {
+                    val sizeDp = 40
+                    val density = context.resources.displayMetrics.density
+                    val sizePx = (sizeDp * density).toInt()
+
+                    fun loadScaledIcon(resId: Int): BitmapDescriptor {
+                        val bmp =
+                            android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                        val scaled =
+                            android.graphics.Bitmap.createScaledBitmap(bmp, sizePx, sizePx, false)
+                        return BitmapDescriptorFactory.fromBitmap(scaled)
+                    }
+
+                    customNoteIcon = loadScaledIcon(R.drawable.pin_note)
+                    customPhotoIcon = loadScaledIcon(R.drawable.pin_photo)
+                    customBothIcon = loadScaledIcon(R.drawable.pin_note_photo)
+
+                    android.util.Log.d("TripMap", "Icone personalizzate caricate correttamente")
+                } catch (e: Exception) {
+                    android.util.Log.e("TripMap", "Errore caricamento icone marker", e)
+                    val fallback =
+                        BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                    customNoteIcon = fallback
+                    customPhotoIcon = fallback
+                    customBothIcon = fallback
+                }
+            },
+            onMapClick = { latLng ->
+                val thresholdMeters = 15.0
+                val clickedJourneyIndex = alljourneyPoints.indexOfFirst { path ->
+                    path.zipWithNext().any { (a, b) ->
+                        val distToSegment = DistanceCalculator.distanceToSegment(
+                            LatLngSerializable(latLng.latitude, latLng.longitude),
+                            LatLngSerializable(a.latitude, a.longitude),
+                            LatLngSerializable(b.latitude, b.longitude)
+                        )
+                        distToSegment < thresholdMeters
+                    }
+                }
+
+                if (clickedJourneyIndex != -1) {
+                    selectedJourney = journeys.getOrNull(clickedJourneyIndex)
+                    showJourneyDialog = true
+                } else {
+                    selectedLatLng = latLng
+                    showMainDialog = true
+                }
+            },
+        ) {
+            // polilinee
+            alljourneyPoints.forEachIndexed { _, path ->
+                if (path.isNotEmpty()) {
+                    com.google.maps.android.compose.Polyline(
+                        points = path,
+                        color = ciano.copy(alpha = 0.7f),
+                        width = 15f,
+                    )
+                }
+            }
+
+            if (journeyPoints.isNotEmpty()) {
                 com.google.maps.android.compose.Polyline(
-                    points = path,
-                    color = ciano.copy(alpha = 0.7f),
-                    width = 15f,
+                    points = journeyPoints,
+                    color = ciano,
+                    width = 15f
                 )
             }
-        }
 
-        if (journeyPoints.isNotEmpty()) {
-            com.google.maps.android.compose.Polyline(
-                points = journeyPoints,
-                color = ciano,
-                width = 15f
-            )
-        }
+            // Markers
+            markers.forEachIndexed { index, marker ->
+                val hasNote = !marker.note.isNullOrEmpty()
+                val hasPhoto = !marker.photoPath.isNullOrEmpty()
 
-        markers.forEachIndexed { index, marker ->
-            val hasNote = !marker.note.isNullOrEmpty()
-            val hasPhoto = !marker.photoPath.isNullOrEmpty()
-
-            val iconToUse = when {
-                hasNote && hasPhoto -> customBothIcon
-                hasNote -> customNoteIcon
-                hasPhoto -> customPhotoIcon
-                else -> BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
-            }
-
-            Marker(
-                state = MarkerState(LatLng(marker.latitude, marker.longitude)),
-                title = "Ricordo #${index + 1}",
-                snippet = marker.note ?: "",
-                icon = iconToUse,
-                onClick = {
-                    selectedMarker = marker
-                    showMarkerDialog = true
-                    true
+                val iconToUse = when {
+                    hasNote && hasPhoto -> customBothIcon
+                    hasNote -> customNoteIcon
+                    hasPhoto -> customPhotoIcon
+                    else -> BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
                 }
-            )
-        }
 
-    }
-
-    if (showJourneyDialog && selectedJourney != null) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = {
-                showJourneyDialog = false
-                selectedJourney = null
-            },
-            title = {
-                Text(
-                    "Dettagli percorso",
-                    style = myTipography2.titleLarge
-                )
-            },
-            text = {
-                val km = selectedJourney!!.distanceMeters?.div(1000)
-                val duration = selectedJourney!!.durationSeconds
-                val minutes = duration?.div(60)
-                val seconds = duration?.rem(60)
-                Column(
-                ) {
-                    Text(
-                        "Distanza: ${"%.2f".format(km)} km",
-                        style = myTipography2.bodyLarge
-                    )
-                    Text(
-                        "Durata: ${minutes} min ${seconds} sec",
-                        style = myTipography2.bodyLarge
-                    )
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
+                Marker(
+                    state = MarkerState(LatLng(marker.latitude, marker.longitude)),
+                    title = "Ricordo #${index + 1}",
+                    snippet = marker.note ?: "",
+                    icon = iconToUse,
                     onClick = {
+                        selectedMarker = marker
+                        showMarkerDialog = true
+                        true
+                    }
+                )
+            }
+        }
+
+        // Dialogs
+        if (showJourneyDialog && selectedJourney != null) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {
+                    showJourneyDialog = false
+                    selectedJourney = null
+                },
+                title = { Text("Dettagli percorso", style = myTipography2.titleLarge) },
+                text = {
+                    val km = selectedJourney!!.distanceMeters?.div(1000)
+                    val duration = selectedJourney!!.durationSeconds
+                    val minutes = duration?.div(60)
+                    val seconds = duration?.rem(60)
+                    Column {
+                        Text("Distanza: ${"%.2f".format(km)} km", style = myTipography2.bodyLarge)
+                        Text(
+                            "Durata: ${minutes} min ${seconds} sec",
+                            style = myTipography2.bodyLarge
+                        )
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
                         showJourneyDialog = false
                         selectedJourney = null
-                    }
-                ) {
-                    Text("Chiudi", style = myTipography2.bodyLarge, color = ciano)
+                    }) { Text("Chiudi", color = ciano, style = myTipography2.bodyLarge) }
                 }
-            }
-        )
-    }
+            )
+        }
 
-
-    if (showMarkerDialog && selectedMarker != null) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = {
-                showMarkerDialog = false
-                selectedMarker = null
-            },
-            title = { Text("Dettagli ricordo", style = myTipography2.titleLarge) },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    val note = selectedMarker?.note
-                    val photoPath = selectedMarker?.photoPath
-
-                    if (note.isNullOrEmpty() && photoPath.isNullOrEmpty()) {
-                        Text(
-                            text = "Non ci sono note e/o foto associati a questo ricordo.",
-                            style = myTipography2.bodyLarge,
-                            color = ciano
-                        )
-                    } else {
-                        note?.takeIf { it.isNotEmpty() }?.let {
-                            Text(it, style = myTipography2.bodyLarge)
-                        }
-
-                        photoPath?.let { path ->
-                            val bitmap = try {
-                                if (path.startsWith("content://")) {
-                                    val stream = context.contentResolver.openInputStream(android.net.Uri.parse(path))
-                                    android.graphics.BitmapFactory.decodeStream(stream).also { stream?.close() }
-                                } else {
-                                    android.graphics.BitmapFactory.decodeFile(path)
-                                }
-                            } catch (e: Exception) { null }
-
-                            bitmap?.let {
-                                Image(
-                                    bitmap = it.asImageBitmap(),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(200.dp)
-                                        .border(
-                                            width = 2.dp,
-                                            color = ciano,
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .clip(RoundedCornerShape(16.dp))
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    coroutineScope.launch {
-                        selectedMarker?.let { m ->
-                            tripViewModel.deleteMarker(m)
-                            markers.remove(m)
-                        }
-                        selectedMarker = null
-                        showMarkerDialog = false
-                    }
-                }) { Text("Rimuovi marker", style = myTipography2.bodyLarge, color=ciano) }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = {
+        if (showMarkerDialog && selectedMarker != null) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {
                     showMarkerDialog = false
                     selectedMarker = null
-                }) { Text("Chiudi", style = myTipography2.bodyLarge, color=ciano) }
-            }
-        )
-    }
-
-    // Dialog principale di scelta
-    if (showMainDialog && selectedLatLng != null) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showMainDialog = false },
-            title = { Text("Aggiungi un ricordo", style = myTipography2.titleLarge) },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (currentPhotoPath !=null || currentNote.isNotEmpty())
-                        Text("Clicca di nuovo sui bottoni per cambiare", style= myTipography2.labelMedium)
-                    if (currentNote.isNotEmpty()) Text("Hai inserito una nota", style = myTipography2.bodyLarge)
-                    if (currentPhotoPath != null) Text("Hai inserito una foto", style = myTipography2.bodyLarge)
-
-                }
-            },
-            confirmButton = {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                },
+                title = { Text("Dettagli ricordo", style = myTipography2.titleLarge) },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        androidx.compose.material3.TextButton(onClick = {
-                            showNoteDialog = true
-                            showMainDialog = false
-                        }) {
-                            Column (
-                                modifier = Modifier
-                                    .padding(16.dp)
-                                    .border(
-                                        width = 3.dp,
-                                        color = ciano,
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ){
-                                Text("Nota", style = myTipography2.bodyLarge, color=ciano)
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "note",
-                                    tint=ciano
-                                )
+                        val note = selectedMarker?.note
+                        val photoPath = selectedMarker?.photoPath
+
+                        if (note.isNullOrEmpty() && photoPath.isNullOrEmpty()) {
+                            Text(
+                                "Non ci sono note e/o foto per questo ricordo.",
+                                style = myTipography2.bodyLarge,
+                                color = ciano
+                            )
+                        } else {
+                            note?.takeIf { it.isNotEmpty() }?.let {
+                                Text(it, style = myTipography2.bodyLarge)
                             }
 
-                        }
+                            photoPath?.let { path ->
+                                val bitmap = try {
+                                    if (path.startsWith("content://")) {
+                                        val stream = context.contentResolver.openInputStream(
+                                            android.net.Uri.parse(path)
+                                        )
+                                        android.graphics.BitmapFactory.decodeStream(stream)
+                                            .also { stream?.close() }
+                                    } else {
+                                        android.graphics.BitmapFactory.decodeFile(path)
+                                    }
+                                } catch (e: Exception) {
+                                    null
+                                }
 
-                        androidx.compose.material3.TextButton(onClick = {
-                            showMainDialog = false
-                            pickImageLauncher.launch("image/*")
-                        }) {
-                            Column (
-                                modifier = Modifier
-                                .padding(16.dp)
-                                .border(
-                                    width = 3.dp,
-                                    color = ciano,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ){
-                                Text("Foto", style = myTipography2.bodyLarge,color = ciano)
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Icon(
-                                    imageVector = Icons.Default.AccountBox,
-                                    contentDescription = "photo",
-                                    tint=ciano
-                                )
+                                bitmap?.let {
+                                    Image(
+                                        bitmap = it.asImageBitmap(),
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(200.dp)
+                                            .border(
+                                                width = 2.dp,
+                                                color = ciano,
+                                                shape = RoundedCornerShape(16.dp)
+                                            )
+                                            .clip(RoundedCornerShape(16.dp))
+                                    )
+                                }
                             }
                         }
                     }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        coroutineScope.launch {
+                            selectedMarker?.let { m ->
+                                tripViewModel.deleteMarker(m)
+                                markers.remove(m)
+                            }
+                            selectedMarker = null
+                            showMarkerDialog = false
+                        }
+                    }) { Text("Rimuovi marker", style = myTipography2.bodyLarge, color = ciano) }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        showMarkerDialog = false
+                        selectedMarker = null
+                    }) { Text("Chiudi", style = myTipography2.bodyLarge, color = ciano) }
+                }
+            )
+        }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+        if (showMainDialog && selectedLatLng != null) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showMainDialog = false },
+                title = { Text("Aggiungi un ricordo", style = myTipography2.titleLarge) },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        androidx.compose.material3.TextButton(onClick = {
-                            //Copia dei valori
-                            val noteToSave = if (currentNote.isNotEmpty()) currentNote else null
-                            val photoToSave = currentPhotoPath
-                            val latLngToSave = selectedLatLng
-
-                            currentTrip?.let { trip ->
-                                latLngToSave?.let { latLng ->
-                                    coroutineScope.launch {
-                                        tripViewModel.addMarker(
-                                            tripId = trip.id,
-                                            lat = latLng.latitude,
-                                            lng = latLng.longitude,
-                                            note = noteToSave,
-                                            photoPath = photoToSave
+                        if (currentPhotoPath != null || currentNote.isNotEmpty())
+                            Text(
+                                "Clicca di nuovo sui bottoni per cambiare",
+                                style = myTipography2.labelMedium
+                            )
+                        if (currentNote.isNotEmpty()) Text(
+                            "Hai inserito una nota",
+                            style = myTipography2.bodyLarge
+                        )
+                        if (currentPhotoPath != null) Text(
+                            "Hai inserito una foto",
+                            style = myTipography2.bodyLarge
+                        )
+                    }
+                },
+                confirmButton = {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            androidx.compose.material3.TextButton(onClick = {
+                                showNoteDialog = true
+                                showMainDialog = false
+                            }) {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(16.dp)
+                                        .border(
+                                            width = 3.dp,
+                                            color = ciano,
+                                            shape = RoundedCornerShape(12.dp)
                                         )
-
-                                        val updatedMarkers =
-                                            tripViewModel.getMarkersForTrip(trip.id)
-                                        markers.clear()
-                                        markers.addAll(updatedMarkers)
-                                    }
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text("Nota", style = myTipography2.bodyLarge, color = ciano)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = "note",
+                                        tint = ciano
+                                    )
                                 }
                             }
 
-                            // reset stati
-                            currentNote = ""
-                            currentPhotoPath = null
-                            selectedLatLng = null
-                            showMainDialog = false
-                        }) { Text("Fine", style = myTipography2.bodyLarge, color=ciano) }
+                            androidx.compose.material3.TextButton(onClick = {
+                                showMainDialog = false
+                                pickImageLauncher.launch("image/*")
+                            }) {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(16.dp)
+                                        .border(
+                                            width = 3.dp,
+                                            color = ciano,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text("Foto", style = myTipography2.bodyLarge, color = ciano)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Icon(
+                                        Icons.Default.AccountBox,
+                                        contentDescription = "photo",
+                                        tint = ciano
+                                    )
+                                }
+                            }
+                        }
 
-                        androidx.compose.material3.TextButton(
-                            onClick = {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            androidx.compose.material3.TextButton(onClick = {
+                                val noteToSave = if (currentNote.isNotEmpty()) currentNote else null
+                                val photoToSave = currentPhotoPath
+                                val latLngToSave = selectedLatLng
+
+                                currentTrip?.let { trip ->
+                                    latLngToSave?.let { latLng ->
+                                        coroutineScope.launch {
+                                            tripViewModel.addMarker(
+                                                tripId = trip.id,
+                                                lat = latLng.latitude,
+                                                lng = latLng.longitude,
+                                                note = noteToSave,
+                                                photoPath = photoToSave
+                                            )
+                                            val updatedMarkers =
+                                                tripViewModel.getMarkersForTrip(trip.id)
+                                            markers.clear()
+                                            markers.addAll(updatedMarkers)
+                                        }
+                                    }
+                                }
+
+                                currentNote = ""
+                                currentPhotoPath = null
+                                selectedLatLng = null
+                                showMainDialog = false
+                            }) { Text("Fine", style = myTipography2.bodyLarge, color = ciano) }
+
+                            androidx.compose.material3.TextButton(onClick = {
                                 showMainDialog = false
                                 currentNote = ""
                                 currentPhotoPath = null
                                 selectedLatLng = null
-                            }) { Text("Annulla", style = myTipography2.bodyLarge, color=ciano) }
+                            }) { Text("Annulla", style = myTipography2.bodyLarge, color = ciano) }
+                        }
                     }
                 }
-            },
-            dismissButton = {
-            }
-        )
-    }
+            )
+        }
 
-    // Dialog per scrivere la nota
-    if (showNoteDialog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showNoteDialog = false },
-            title = { Text("Scrivi una nota", style = myTipography2.labelMedium) },
-            text = {
-                androidx.compose.material3.TextField(
-                    value = currentNote,
-                    onValueChange = { currentNote = it },
-                    placeholder = { Text("Scrivi qui...", style = myTipography2.bodyLarge) },
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = myTipography2.bodyLarge
-                )
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    showNoteDialog = false
-                    showMainDialog = true
-                }) { Text("Salva", style = myTipography2.labelMedium, color=ciano) }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    showNoteDialog = false
-                    showMainDialog = true
-                }) { Text("Annulla", style = myTipography2.bodyLarge, color=ciano) }
-            }
-        )
+        if (showNoteDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showNoteDialog = false },
+                title = { Text("Scrivi una nota", style = myTipography2.labelMedium) },
+                text = {
+                    androidx.compose.material3.TextField(
+                        value = currentNote,
+                        onValueChange = { currentNote = it },
+                        placeholder = { Text("Scrivi qui...", style = myTipography2.bodyLarge) },
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = myTipography2.bodyLarge
+                    )
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        showNoteDialog = false
+                        showMainDialog = true
+                    }) { Text("Salva", style = myTipography2.labelMedium, color = ciano) }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        showNoteDialog = false
+                        showMainDialog = true
+                    }) { Text("Annulla", style = myTipography2.bodyLarge, color = ciano) }
+                }
+            )
+        }
     }
 }
-
