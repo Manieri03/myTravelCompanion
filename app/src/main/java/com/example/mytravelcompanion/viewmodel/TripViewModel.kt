@@ -17,7 +17,8 @@ import kotlinx.coroutines.withContext
 
 class TripViewModel(private val dao: TripDao,
                     private val markerDao: MarkerDAO,
-                    private val journeyDao: JourneyDAO) : ViewModel() {
+                    private val journeyDao: JourneyDAO,
+                    private val pointDao: PointDAO) : ViewModel() {
 
     var lastKnownLocation: LatLng? = null
     val trips = dao.getAllTrips()
@@ -45,6 +46,10 @@ class TripViewModel(private val dao: TripDao,
 
     private val _journeys = MutableStateFlow<List<Journey>>(emptyList())
     val journeys: StateFlow<List<Journey>> get() = _journeys
+
+    //Punti di interesse
+    private val _points = MutableStateFlow<List<Point>>(emptyList())
+    val points: StateFlow<List<Point>> get() = _points
 
     fun addTrip(trip: Trip) {
         viewModelScope.launch {
@@ -281,8 +286,22 @@ class TripViewModel(private val dao: TripDao,
         totalDistance / 1000.0
     }
 
+    //Punti di interesse
+    fun loadPoints() = viewModelScope.launch {
+        val list = pointDao.getAllPoints()
+        _points.value = list
+    }
+
+    fun addPoint(point: Point) = viewModelScope.launch {
+        pointDao.insertPoint(point)
+        loadPoints()
+    }
+
+    fun deletePoint(point: Point) = viewModelScope.launch {
+        pointDao.deletePoint(point)
+        loadPoints()
+    }
 
 }
-
 
 data class LatLngSerializable(val lat: Double, val lng: Double)

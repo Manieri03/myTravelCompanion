@@ -1,5 +1,9 @@
 package com.example.mytravelcompanion.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,10 +34,23 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.core.content.ContextCompat
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.ui.theme.myTipography2
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -43,9 +60,14 @@ import java.time.format.DateTimeFormatter
 fun Plan() {
     val context = LocalContext.current
     val db = remember { AppDatabase.getDatabase(context) }
-    val factory = remember { TripViewModelFactory(db.tripDao(), db.MarkerDAO(), db.JourneyDAO()) }
+    val factory = remember { TripViewModelFactory(db.tripDao(), db.MarkerDAO(), db.JourneyDAO(), db.PointDAO()) }
     val viewModel: TripViewModel = viewModel(factory = factory)
     val trips by viewModel.trips.collectAsState(initial = emptyList())
+    val points by viewModel.points.collectAsState(initial = emptyList())
+    LaunchedEffect(Unit) {
+        viewModel.loadPoints()
+    }
+
     val today = LocalDate.now()
     val scheduledTrips = trips.filter { it.startDate != null && it.startDate.isAfter(today) }
 
@@ -226,7 +248,7 @@ fun Plan() {
                     maxLines = 1,
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
+                    label = { Text("Nome") },
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -239,7 +261,7 @@ fun Plan() {
                 ) {
                     Row {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = Icons.Default.LocationOn,
                             contentDescription = "Icona salvataggio",
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -253,6 +275,19 @@ fun Plan() {
             }
         }
 
+
+        if (showMap) {
+            PointMapDialog(
+                name = name,
+                onDismiss = { showMap = false },
+                onSavePoint = { lat, lng ->
+                    viewModel.addPoint(Point(name = name, latitude = lat, longitude = lng))
+                    name = ""
+                    showMap = false
+                }
+            )
+        }
+
         Column (
             modifier = Modifier
                 .fillMaxSize()
@@ -260,7 +295,18 @@ fun Plan() {
             verticalArrangement = Arrangement.spacedBy(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            Text(text="Viaggi programmati",style = myTipography2.titleLarge)
+            Row {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Icona viaggi",
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Viaggi programmati",
+                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
 
             if (scheduledTrips.isEmpty()) {
                 Text(
@@ -327,6 +373,82 @@ fun Plan() {
                 }
             }
         }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Icona punti",
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Punti di interesse",
+                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+
+            if (points.isEmpty()) {
+                Text(
+                    text = "Nessun punto salvato",
+                    fontSize = 18.sp,
+                    style = myTipography2.bodyLarge
+                )
+            } else {
+                points.forEach { point ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = 2.dp,
+                                color = blu,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = point.name,
+                                    fontSize = 18.sp,
+                                    style = myTipography2.titleLarge
+                                )
+                                Text(
+                                    text = "Lat: ${"%.5f".format(point.latitude)}, Lng: ${"%.5f".format(point.longitude)}",
+                                    fontSize = 12.sp,
+                                    style = myTipography2.bodyLarge
+                                )
+                            }
+
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Elimina punto",
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable {
+                                            viewModel.deletePoint(point)
+                                        }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
 }
 
@@ -412,3 +534,97 @@ fun DropDownDemo(
     }
 }
 
+@Composable
+fun PointMapDialog(
+    name: String,
+    onDismiss: () -> Unit,
+    onSavePoint: (lat: Double, lng: Double) -> Unit
+) {
+    val context = LocalContext.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    var userLocation by remember { mutableStateOf<LatLng?>(null) }
+    var selectedLatLng by remember { mutableStateOf<LatLng?>(null) }
+
+    val cameraPositionState = rememberCameraPositionState()
+
+    val hasLocationPermission = ContextCompat.checkSelfPermission(
+        context, Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                location?.let {
+                    userLocation = LatLng(it.latitude, it.longitude)
+                    cameraPositionState.position = CameraPosition.fromLatLngZoom(userLocation!!, 14f)
+                }
+            }
+        }
+    }
+
+    // Recupero posizione attuale
+    LaunchedEffect(Unit) {
+        if (hasLocationPermission) {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                location?.let {
+                    userLocation = LatLng(it.latitude, it.longitude)
+                    cameraPositionState.position = CameraPosition.fromLatLngZoom(userLocation!!, 14f)
+                }
+            }
+        } else {
+            launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    selectedLatLng?.let { onSavePoint(it.latitude, it.longitude) }
+                    onDismiss()
+                }
+            ) {
+                Text("Salva punto")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Annulla") }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+            ) {
+                if (userLocation == null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Recupero posizione...")
+                    }
+                } else {
+                    GoogleMap(
+                        modifier = Modifier.fillMaxSize(),
+                        cameraPositionState = cameraPositionState,
+                        properties = MapProperties(isMyLocationEnabled = true),
+                        onMapClick = { latLng ->
+                            selectedLatLng = latLng
+                        }
+                    ) {
+                        selectedLatLng?.let {
+                            Marker(
+                                state = MarkerState(position = it),
+                                title = name.ifEmpty { "Punto di interesse" },
+                                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    )
+}

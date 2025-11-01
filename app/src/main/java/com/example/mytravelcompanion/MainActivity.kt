@@ -48,9 +48,10 @@ class MainActivity : ComponentActivity() {
                 val dao = AppDatabase.getDatabase(context).tripDao()
                 val markerDAO = AppDatabase.getDatabase(context).MarkerDAO()
                 val journeyDAO = AppDatabase.getDatabase(context).JourneyDAO()
+                val pointDAO= AppDatabase.getDatabase(context).PointDAO()
 
                 val tripViewModel: TripViewModel = viewModel(
-                    factory = TripViewModelFactory(dao, markerDAO, journeyDAO)
+                    factory = TripViewModelFactory(dao, markerDAO, journeyDAO, pointDAO)
                 )
 
                 NavHost()

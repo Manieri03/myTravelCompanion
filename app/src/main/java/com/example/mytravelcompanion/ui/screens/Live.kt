@@ -91,8 +91,9 @@ fun Live(navController: NavController) {
     val dao = AppDatabase.getDatabase(context).tripDao()
     val markerDAO= AppDatabase.getDatabase(context).MarkerDAO()
     val journeyDAO= AppDatabase.getDatabase(context).JourneyDAO()
+    val pointDAO= AppDatabase.getDatabase(context).PointDAO()
     val tripViewModel: TripViewModel = viewModel(
-        factory = TripViewModelFactory(dao, markerDAO, journeyDAO)
+        factory = TripViewModelFactory(dao, markerDAO, journeyDAO,pointDAO)
     )
 
     val trips by tripViewModel.trips.collectAsState(initial = emptyList())
@@ -309,6 +310,8 @@ fun TripMap(
     var customPhotoIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     var customBothIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
 
+    val points by tripViewModel.points.collectAsState(initial = emptyList())
+
     // Recupera la posizione attuale al primo avvio
     LaunchedEffect(Unit) {
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -425,13 +428,14 @@ fun TripMap(
         }
     }
 
-    // Carica markers e journeys dal DB
+    // Carica markers, journeys e points dal DB
     LaunchedEffect(currentTrip?.id) {
         currentTrip?.let {
             val fromDb = tripViewModel.getMarkersForTrip(it.id)
             markers.clear()
             markers.addAll(fromDb)
             tripViewModel.loadJourneysForTrip(it.id)
+            tripViewModel.loadPoints()
         }
     }
 
@@ -544,6 +548,14 @@ fun TripMap(
                         showMarkerDialog = true
                         true
                     }
+                )
+            }
+
+            points.forEach { point ->
+                Marker(
+                    state = MarkerState(position = LatLng(point.latitude, point.longitude)),
+                    title = point.name,
+                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
                 )
             }
         }
