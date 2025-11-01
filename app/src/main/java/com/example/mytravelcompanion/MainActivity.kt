@@ -53,23 +53,13 @@ class MainActivity : ComponentActivity() {
                     factory = TripViewModelFactory(dao, markerDAO, journeyDAO)
                 )
 
-                LaunchedEffect(Unit) {
-                    tripViewModel.checkAndUpdateTripCompletion()
-
-                    val days = tripViewModel.daysSinceLastCompletedTrip()
-                    //1 per debug, 10 più sensato
-                    if (days != null && days >= 1) {
-                        sendInactivityNotification()
-                    }
-                }
-
                 NavHost()
             }
         }
     }
 
     private fun scheduleInactivityCheck() {
-        val workRequest = PeriodicWorkRequestBuilder<InactivityWorker>(15, TimeUnit.MINUTES)
+        val workRequest = PeriodicWorkRequestBuilder<InactivityWorker>(12, TimeUnit.HOURS)
             .build()
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
@@ -78,26 +68,6 @@ class MainActivity : ComponentActivity() {
             workRequest
         )
     }
-
-    private fun sendInactivityNotification() {
-        val builder = NotificationCompat.Builder(this, "trip_channel")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("È ora di viaggiare di nuovo!")
-            .setContentText("Sono passati più di 10 giorni dall'ultimo viaggio. Scopri nuove avventure!")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
-
-        val notificationManager = NotificationManagerCompat.from(this)
-
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationManager.notify(3001, builder.build())
-        }
-    }
-
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -49,12 +49,18 @@ fun Plan() {
     val today = LocalDate.now()
     val scheduledTrips = trips.filter { it.startDate != null && it.startDate.isAfter(today) }
 
+    //viaggio
     var destination by remember { mutableStateOf("") }
     var selectedStartDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedEndDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedTripType by remember { mutableStateOf(TripType.LOCAL) }
     var showStartModal by remember { mutableStateOf(false) }
     var showEndModal by remember { mutableStateOf(false) }
+
+    //punto di interesse
+    var name by remember { mutableStateOf("") }
+    var showMap by remember{mutableStateOf(false)}
+
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val scrollState = rememberScrollState()
 
@@ -62,32 +68,23 @@ fun Plan() {
         modifier = Modifier
             .fillMaxSize()
             .padding(start = 18.dp, end = 18.dp, top = 55.dp, bottom = 18.dp)
-            .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(45.dp)
+            .verticalScroll(scrollState)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(45.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.tc_logo),
-                contentDescription = "Logo app",
-                modifier = Modifier
-                    .size(70.dp)
-                    .clip(RoundedCornerShape(16.dp))
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                "Nuovo viaggio",
-                fontSize = 26.sp,
-                style = myTipography2.titleLarge
-            )
-        }
+        Image(
+            painter = painterResource(id = R.drawable.tc_logo),
+            contentDescription = "Logo app",
+            modifier = Modifier
+                .size(70.dp)
+                .clip(RoundedCornerShape(16.dp))
+        )
+        Text(
+            "Nuovo viaggio",
+            fontSize = 26.sp,
+            style = myTipography2.titleLarge
+        )
 
         Box(
             modifier = Modifier
@@ -197,6 +194,57 @@ fun Plan() {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Salva viaggio",
+                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
+
+        Text(
+            "Nuovo punto di interesse",
+            fontSize = 26.sp,
+            style = myTipography2.titleLarge
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 2.dp,
+                    color = blu,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .padding(16.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+
+                OutlinedTextField(
+                    maxLines = 1,
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Button(
+                    onClick = { showMap = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = ciano),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                ) {
+                    Row {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Icona salvataggio",
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Salva sulla mappa",
                             fontSize = 16.sp,
                             style = MaterialTheme.typography.bodyLarge
                         )
