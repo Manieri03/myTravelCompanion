@@ -43,6 +43,7 @@ import androidx.core.content.ContextCompat
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.ui.theme.myTipography2
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -540,6 +541,7 @@ fun PointMapDialog(
     onDismiss: () -> Unit,
     onSavePoint: (lat: Double, lng: Double) -> Unit
 ) {
+    var customPointIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
@@ -613,13 +615,30 @@ fun PointMapDialog(
                         properties = MapProperties(isMyLocationEnabled = true),
                         onMapClick = { latLng ->
                             selectedLatLng = latLng
+                        },
+                        onMapLoaded={
+                            try {
+                                val sizeDp = 40
+                                val density = context.resources.displayMetrics.density
+                                val sizePx = (sizeDp * density).toInt()
+
+                                fun loadScaledIcon(resId: Int): BitmapDescriptor {
+                                    val bmp = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                                    val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, sizePx, sizePx, false)
+                                    return BitmapDescriptorFactory.fromBitmap(scaled)
+                                }
+
+                                customPointIcon = loadScaledIcon(R.drawable.point_interest_icon)
+                            } catch (e: Exception) {
+                                customPointIcon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                            }
                         }
                     ) {
                         selectedLatLng?.let {
                             Marker(
                                 state = MarkerState(position = it),
                                 title = name.ifEmpty { "Punto di interesse" },
-                                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                                icon = customPointIcon ?: BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
                             )
                         }
                     }

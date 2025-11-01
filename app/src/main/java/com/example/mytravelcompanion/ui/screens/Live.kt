@@ -309,6 +309,7 @@ fun TripMap(
     var customNoteIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     var customPhotoIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     var customBothIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+    var customPointIcon by remember {mutableStateOf<BitmapDescriptor?>(null)}
 
     val points by tripViewModel.points.collectAsState(initial = emptyList())
 
@@ -464,16 +465,15 @@ fun TripMap(
                     val sizePx = (sizeDp * density).toInt()
 
                     fun loadScaledIcon(resId: Int): BitmapDescriptor {
-                        val bmp =
-                            android.graphics.BitmapFactory.decodeResource(context.resources, resId)
-                        val scaled =
-                            android.graphics.Bitmap.createScaledBitmap(bmp, sizePx, sizePx, false)
+                        val bmp = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                        val scaled = android.graphics.Bitmap.createScaledBitmap(bmp, sizePx, sizePx, false)
                         return BitmapDescriptorFactory.fromBitmap(scaled)
                     }
 
                     customNoteIcon = loadScaledIcon(R.drawable.pin_note)
                     customPhotoIcon = loadScaledIcon(R.drawable.pin_photo)
                     customBothIcon = loadScaledIcon(R.drawable.pin_note_photo)
+                    customPointIcon=loadScaledIcon(R.drawable.point_interest_icon)
 
                     android.util.Log.d("TripMap", "Icone personalizzate caricate correttamente")
                 } catch (e: Exception) {
@@ -483,6 +483,7 @@ fun TripMap(
                     customNoteIcon = fallback
                     customPhotoIcon = fallback
                     customBothIcon = fallback
+                    customPointIcon=fallback
                 }
             },
             onMapClick = { latLng ->
@@ -555,7 +556,7 @@ fun TripMap(
                 Marker(
                     state = MarkerState(position = LatLng(point.latitude, point.longitude)),
                     title = point.name,
-                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                    icon = customPointIcon ?: BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
                 )
             }
         }
