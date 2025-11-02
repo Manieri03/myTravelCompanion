@@ -216,7 +216,7 @@ fun Live(navController: NavController) {
                         Button(
                             onClick = {
                                 currentTrip?.let {
-                                    tripViewModel.markTripAsCompleted(it.id)
+                                    tripViewModel.markTripAsCompleted(it.id,context)
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = blu)

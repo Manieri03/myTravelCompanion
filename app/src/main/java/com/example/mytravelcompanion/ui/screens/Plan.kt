@@ -226,7 +226,7 @@ fun Plan() {
         }
 
         Text(
-            "Nuovo punto di interesse",
+            "Nuovo punto",
             fontSize = 26.sp,
             style = myTipography2.titleLarge
         )

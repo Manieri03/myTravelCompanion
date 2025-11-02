@@ -10,6 +10,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.data.AppDatabase
+import com.example.mytravelcompanion.util.InactivityPrefs
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -33,6 +34,8 @@ class InactivityWorker(
     }
 
     private fun showNotification() {
+        if (InactivityPrefs.hasAlreadyNotified(applicationContext)) return
+
         createNotificationChannel()
 
         val builder = NotificationCompat.Builder(applicationContext, "trip_channel")
@@ -50,6 +53,8 @@ class InactivityWorker(
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
             notificationManager.notify(2001, builder.build())
+            // Notifica già mostrata
+            InactivityPrefs.markNotified(applicationContext)
         }
     }
 

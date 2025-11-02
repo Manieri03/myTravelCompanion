@@ -336,6 +336,9 @@ fun TripMapPreview(
     var customNoteIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     var customPhotoIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     var customBothIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
+    var customPointIcon by remember {mutableStateOf<BitmapDescriptor?>(null)}
+
+    val points by tripViewModel.points.collectAsState(initial = emptyList())
 
     // Caricamento iniziale dati
     LaunchedEffect(tripId) {
@@ -343,6 +346,7 @@ fun TripMapPreview(
         markers.clear()
         markers.addAll(tripMarkers)
         tripViewModel.loadJourneysForTrip(tripId)
+        tripViewModel.loadPoints()
 
         val paths = tripViewModel.allJourneyPoints.first()
         initialCamera = paths.flatten().firstOrNull()
@@ -390,12 +394,14 @@ fun TripMapPreview(
                     customNoteIcon = loadScaledIcon(R.drawable.pin_note)
                     customPhotoIcon = loadScaledIcon(R.drawable.pin_photo)
                     customBothIcon = loadScaledIcon(R.drawable.pin_note_photo)
+                    customPointIcon=loadScaledIcon(R.drawable.point_interest_icon)
                 } catch (e: Exception) {
                     val fallback =
                         BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
                     customNoteIcon = fallback
                     customPhotoIcon = fallback
                     customBothIcon = fallback
+                    customPointIcon=fallback
                 }
             },
             onMapClick = { latLng ->
@@ -449,6 +455,14 @@ fun TripMapPreview(
                         showMarkerDialog = true
                         true
                     }
+                )
+            }
+
+            points.forEach { point ->
+                Marker(
+                    state = MarkerState(position = LatLng(point.latitude, point.longitude)),
+                    title = point.name,
+                    icon = customPointIcon ?: BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
                 )
             }
         }
