@@ -66,7 +66,7 @@ fun Plan() {
     val trips by viewModel.trips.collectAsState(initial = emptyList())
     val points by viewModel.points.collectAsState(initial = emptyList())
     LaunchedEffect(Unit) {
-        viewModel.loadPoints()
+        viewModel.loadPoints(context)
     }
 
     val today = LocalDate.now()
@@ -282,7 +282,7 @@ fun Plan() {
                 name = name,
                 onDismiss = { showMap = false },
                 onSavePoint = { lat, lng ->
-                    viewModel.addPoint(Point(name = name, latitude = lat, longitude = lng))
+                    viewModel.addPoint(Point(name = name, latitude = lat, longitude = lng),context)
                     name = ""
                     showMap = false
                 }
@@ -440,7 +440,7 @@ fun Plan() {
                                     modifier = Modifier
                                         .size(24.dp)
                                         .clickable {
-                                            viewModel.deletePoint(point)
+                                            viewModel.deletePoint(point,context)
                                         }
                                 )
                             }

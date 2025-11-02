@@ -436,7 +436,7 @@ fun TripMap(
             markers.clear()
             markers.addAll(fromDb)
             tripViewModel.loadJourneysForTrip(it.id)
-            tripViewModel.loadPoints()
+            tripViewModel.loadPoints(context)
         }
     }
 

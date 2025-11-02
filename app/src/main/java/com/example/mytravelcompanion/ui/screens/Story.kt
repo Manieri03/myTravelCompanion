@@ -346,7 +346,7 @@ fun TripMapPreview(
         markers.clear()
         markers.addAll(tripMarkers)
         tripViewModel.loadJourneysForTrip(tripId)
-        tripViewModel.loadPoints()
+        tripViewModel.loadPoints(context)
 
         val paths = tripViewModel.allJourneyPoints.first()
         initialCamera = paths.flatten().firstOrNull()
