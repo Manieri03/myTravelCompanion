@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -23,21 +24,48 @@ import kotlinx.coroutines.launch
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val geofencingEvent = GeofencingEvent.fromIntent(intent) ?: return
+        Log.d("GEOFENCE", "Receiver chiamato! Intent: $intent")
 
-        if (geofencingEvent.hasError()) return
+        val geofenceIds = intent.getStringArrayListExtra("com.google.android.location.intent.extra.geofence")
+        Log.d("GEOFENCE", "Fallback geofence ids: $geofenceIds")
+
+        val geofencingEvent = GeofencingEvent.fromIntent(intent)
+        if (geofencingEvent == null) {
+            Log.d("GEOFENCE", "GeofencingEvent null!")
+            return
+        }
+
+        if (geofencingEvent.hasError()) {
+            Log.d("GEOFENCE", "Errore geofence: ${geofencingEvent.errorCode}")
+            return
+        }
 
         val geofenceTransition = geofencingEvent.geofenceTransition
+        Log.d("GEOFENCE", "Transizione geofence: $geofenceTransition")
 
         if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
             val triggeringGeofences = geofencingEvent.triggeringGeofences
+            Log.d("GEOFENCE", "Geofence trigger: ${triggeringGeofences?.map { it.requestId }}")
             triggeringGeofences?.forEach { geofence ->
                 showNotification(context, geofence.requestId)
             }
+        } else {
+            Log.d("GEOFENCE", "Transizione non gestita: $geofenceTransition")
         }
     }
 
+
     private fun showNotification(context: Context, pointName: String) {
+        Log.d("GEOFENCE", "showNotification chiamato per $pointName")
+
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.d("GEOFENCE", "Permesso POST_NOTIFICATIONS non concesso!")
+            return
+        }
         val channelId = "trip_channel"
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
