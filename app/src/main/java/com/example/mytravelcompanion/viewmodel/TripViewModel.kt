@@ -1,6 +1,7 @@
 package com.example.mytravelcompanion.data
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mytravelcompanion.util.DistanceCalculator
@@ -290,7 +291,7 @@ class TripViewModel(private val dao: TripDao,
     }
 
     //Punti di interesse
-    fun loadPoints(context:Context) = viewModelScope.launch {
+    fun loadPoints(context: Context) = viewModelScope.launch {
         val list = pointDao.getAllPoints()
         _points.value = list
         GeofenceHelper.registerGeofences(context, list)
@@ -298,13 +299,13 @@ class TripViewModel(private val dao: TripDao,
 
     fun addPoint(point: Point, context: Context) = viewModelScope.launch {
         pointDao.insertPoint(point)
-        loadPoints(context)
+        _points.value = _points.value + point
         registerGeofence(point, context)
     }
 
     fun deletePoint(point: Point, context: Context) = viewModelScope.launch {
         pointDao.deletePoint(point)
-        loadPoints(context)
+        _points.value = _points.value.filter { it.name != point.name }
         removeGeofence(point, context)
     }
 

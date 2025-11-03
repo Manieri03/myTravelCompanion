@@ -78,6 +78,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import kotlinx.coroutines.awaitCancellation
@@ -557,6 +558,14 @@ fun TripMap(
                     state = MarkerState(position = LatLng(point.latitude, point.longitude)),
                     title = point.name,
                     icon = customPointIcon ?: BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                )
+
+                Circle(
+                    center = LatLng(point.latitude, point.longitude),
+                    radius = 200.0,
+                    strokeColor = blu.copy(alpha = 0.8f),
+                    fillColor = ciano.copy(alpha = 0.2f),
+                    strokeWidth = 3f
                 )
             }
         }

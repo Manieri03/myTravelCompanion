@@ -9,18 +9,16 @@ import com.google.android.gms.location.LocationServices
 
 object GeofenceHelper {
 
-    private const val GEOFENCE_RADIUS = 200f // metri
+    private const val GEOFENCE_RADIUS = 200f
 
     fun registerGeofences(context: Context, points: List<Point>) {
-        val geofencingClient = com.google.android.gms.location.LocationServices.getGeofencingClient(context)
+        val geofencingClient = LocationServices.getGeofencingClient(context)
 
         if (androidx.core.content.ContextCompat.checkSelfPermission(
                 context,
                 android.Manifest.permission.ACCESS_FINE_LOCATION
             ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
+        ) return
 
         val geofenceList = points.map {
             Geofence.Builder()
@@ -31,6 +29,8 @@ object GeofenceHelper {
                 .build()
         }
 
+        if (geofenceList.isEmpty()) return
+
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -39,11 +39,14 @@ object GeofenceHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val request = com.google.android.gms.location.GeofencingRequest.Builder()
-            .setInitialTrigger(com.google.android.gms.location.GeofencingRequest.INITIAL_TRIGGER_ENTER)
-            .addGeofences(geofenceList)
-            .build()
-
-        geofencingClient.addGeofences(request, pendingIntent)
+        geofencingClient.removeGeofences(points.map { it.name }).addOnCompleteListener {
+            geofencingClient.addGeofences(
+                GeofencingRequest.Builder()
+                    .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+                    .addGeofences(geofenceList)
+                    .build(),
+                pendingIntent
+            )
+        }
     }
 }

@@ -38,6 +38,20 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+                    102
+                )
+            }
+        }
+
         createNotificationChannel()
         scheduleInactivityCheck()
 
