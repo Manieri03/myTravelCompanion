@@ -50,12 +50,14 @@ object GeofenceHelper {
             return
         }
 
-        val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
+        val intent = Intent(context, GeofenceBroadcastReceiver::class.java).apply {
+            action = "com.example.mytravelcompanion.ACTION_GEOFENCE_EVENT"
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             0,
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
 
         Log.d(TAG, "Rimozione geofence esistenti con ID: ${points.map { it.name }}")

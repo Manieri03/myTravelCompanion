@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        createNotificationChannel()
+        createNotificationChannels()
         scheduleInactivityCheck()
 
 
@@ -84,17 +84,34 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Trip Notifications"
-            val descriptionText = "Notifiche sui viaggi"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel("trip_channel", name, importance).apply {
-                description = descriptionText
-            }
             val notificationManager: NotificationManager =
                 getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+
+            //canale notifiche di viaggio
+            val tripChannel = NotificationChannel(
+                "trip_channel",
+                "Notifiche di viaggio",
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Promemoria e aggiornamenti sui tuoi viaggi"
+            }
+
+            //notifiche punti di interesse
+            val poiChannel = NotificationChannel(
+                "poi_channel",
+                "Punti di interesse",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Avvisi quando ti avvicini a un punto di interesse"
+                enableLights(true)
+                enableVibration(true)
+            }
+
+            notificationManager.createNotificationChannel(tripChannel)
+            notificationManager.createNotificationChannel(poiChannel)
         }
     }
+
 }

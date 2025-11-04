@@ -24,7 +24,12 @@
 
         <receiver
             android:name=".services.GeofenceBroadcastReceiver"
-            android:exported="true" />
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.mytravelcompanion.ACTION_GEOFENCE_EVENT" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name=".service.JourneyService"
@@ -42,7 +47,6 @@
             android:theme="@style/Theme.MyTravelCompanion">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

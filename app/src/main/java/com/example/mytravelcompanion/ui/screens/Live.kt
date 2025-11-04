@@ -559,14 +559,6 @@ fun TripMap(
                     title = point.name,
                     icon = customPointIcon ?: BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
                 )
-
-                Circle(
-                    center = LatLng(point.latitude, point.longitude),
-                    radius = 200.0,
-                    strokeColor = blu.copy(alpha = 0.8f),
-                    fillColor = ciano.copy(alpha = 0.2f),
-                    strokeWidth = 3f
-                )
             }
         }
 

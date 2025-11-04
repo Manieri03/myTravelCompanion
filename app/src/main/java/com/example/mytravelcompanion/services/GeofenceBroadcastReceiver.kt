@@ -24,6 +24,8 @@ import kotlinx.coroutines.launch
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+
+        Log.d("GEOFENCE", "Extras: ${intent.extras?.keySet()}")
         Log.d("GEOFENCE", "Receiver chiamato! Intent: $intent")
 
         val geofenceIds = intent.getStringArrayListExtra("com.google.android.location.intent.extra.geofence")
@@ -66,23 +68,22 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
             Log.d("GEOFENCE", "Permesso POST_NOTIFICATIONS non concesso!")
             return
         }
-        val channelId = "trip_channel"
+
+        val channelId = "poi_channel"
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "Trip Notifications",
+                "Punti di interesse",
                 NotificationManager.IMPORTANCE_HIGH
-            )
+            ).apply {
+                description = "Avvisi quando ti avvicini a un punto di interesse"
+                enableLights(true)
+                enableVibration(true)
+            }
             val manager = context.getSystemService(NotificationManager::class.java)
             manager?.createNotificationChannel(channel)
         }
-
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) return
 
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.point_interest_icon)
@@ -93,5 +94,6 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
         NotificationManagerCompat.from(context).notify(pointName.hashCode(), builder.build())
     }
+
 
 }
