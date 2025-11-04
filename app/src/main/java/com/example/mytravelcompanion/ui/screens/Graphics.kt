@@ -84,7 +84,7 @@ fun Graphics() {
             .fillMaxSize()
             .padding(start = 18.dp, end = 18.dp, top = 55.dp, bottom = 18.dp)
             .verticalScroll(verticalScrollState),
-        verticalArrangement = Arrangement.spacedBy(15.dp)
+        verticalArrangement = Arrangement.spacedBy(40.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -117,14 +117,14 @@ fun Graphics() {
             verticalArrangement = Arrangement.spacedBy(25.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Heat map dei tuoi percorsi", style=myTipography2.labelMedium)
+            Text("Heat map dei tuoi percorsi", style=myTipography2.labelMedium, fontSize = 22.sp)
             JourneyHeatmapScreen()
             if (loading) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text("Caricamento grafico...", style = myTipography2.bodyLarge)
                 }
             } else {
-                Text("Numero di viaggi", style=myTipography2.labelMedium)
+                Text("Numero di viaggi", style=myTipography2.labelMedium, fontSize = 22.sp)
                 MonthlyTripsChart(monthlyTripCount)
             }
         }
@@ -227,9 +227,20 @@ fun JourneyHeatmapScreen() {
     ) {
         MapEffect(heatmapPoints) { map ->
             map.clear()
+            val colors = intArrayOf(
+                android.graphics.Color.rgb(0, 255, 255),
+                android.graphics.Color.rgb(0, 0, 255),
+                android.graphics.Color.rgb(255, 0, 0)
+            )
+            val startPoints = floatArrayOf(0.2f, 0.5f, 1.0f)
+
+            val gradient = com.google.maps.android.heatmaps.Gradient(colors, startPoints)
+
             val provider = HeatmapTileProvider.Builder()
                 .data(heatmapPoints)
-                .radius(30)
+                .radius(40)
+                .gradient(gradient)
+                .maxIntensity(30.0)
                 .build()
             map.addTileOverlay(TileOverlayOptions().tileProvider(provider))
         }

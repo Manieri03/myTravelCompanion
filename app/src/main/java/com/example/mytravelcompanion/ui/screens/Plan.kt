@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +36,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
@@ -209,7 +209,9 @@ fun Plan() {
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
-                    Row {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ){
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Icona salvataggio",
@@ -260,7 +262,9 @@ fun Plan() {
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
-                    Row {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ){
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = "Icona salvataggio",
@@ -296,7 +300,12 @@ fun Plan() {
             verticalArrangement = Arrangement.spacedBy(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            Row {
+
+            Text("I tuoi viaggi e luoghi", style=myTipography2.titleLarge, fontSize = 26.sp)
+
+            Row (
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     imageVector = Icons.Default.Menu,
                     contentDescription = "Icona viaggi",
@@ -382,7 +391,9 @@ fun Plan() {
             verticalArrangement = Arrangement.spacedBy(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row {
+            Row (
+                verticalAlignment = Alignment.CenterVertically
+            ){
                 Icon(
                     imageVector = Icons.Default.Home,
                     contentDescription = "Icona punti",
@@ -589,11 +600,11 @@ fun PointMapDialog(
                     onDismiss()
                 }
             ) {
-                Text("Salva punto")
+                Text("Salva punto", style=myTipography2.bodyLarge)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Annulla") }
+            TextButton(onClick = onDismiss) { Text("Annulla", style=myTipography2.bodyLarge) }
         },
         text = {
             Column(

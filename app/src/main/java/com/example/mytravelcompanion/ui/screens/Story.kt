@@ -312,7 +312,7 @@ fun TripCard(trip: Trip) {
             }
         }
 
-        Text("Tipo: ${trip.tripType}", style = myTipography2.bodyLarge)
+        Text("Tipo: ${trip.tripType.displayName}", style = myTipography2.bodyLarge)
     }
 }
 

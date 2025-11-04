@@ -46,6 +46,7 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestPermissi
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
@@ -254,7 +255,7 @@ fun Live(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(25.dp)
             ) {
                 Text(
-                    text = "Nessun viaggio",
+                    text = "Nessun viaggio previsto per oggi",
                     style = myTipography2.bodyLarge
                 )
 
@@ -262,7 +263,16 @@ fun Live(navController: NavController) {
                     onClick = { navController.navigate("Plan") },
                     colors = ButtonDefaults.buttonColors(containerColor = ciano),
                 ) {
-                    Text("Pianificalo", style = myTipography2.bodyLarge)
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Icona pianifica",
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Pianificalo",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+
                 }
 
             }
