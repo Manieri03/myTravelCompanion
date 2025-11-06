@@ -52,6 +52,7 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -86,6 +87,9 @@ fun Plan() {
 
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val scrollState = rememberScrollState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -184,6 +188,31 @@ fun Plan() {
                 // Bottone Salva
                 Button(
                     onClick = {
+
+                        val today = LocalDate.now()
+
+                        if (destination.isBlank()) {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Inserisci una destinazione prima di salvare")
+                            }
+                            return@Button
+                        }
+
+                        if (selectedStartDate == null || selectedStartDate!!.isBefore(today)) {
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("La data di partenza non può essere precedente ad oggi")
+                            }
+                            return@Button
+                        }
+
+                        if (selectedTripType == TripType.MULTIDAY) {
+                            if (selectedEndDate == null || selectedEndDate!!.isBefore(selectedStartDate)) {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("La data di fine deve essere dopo la partenza")
+                                }
+                                return@Button
+                            }
+                        }
                         val finalEndDate = if (selectedTripType == TripType.MULTIDAY) {
                             selectedEndDate
                         } else {
@@ -203,6 +232,11 @@ fun Plan() {
                         selectedStartDate = null
                         selectedEndDate = null
                         selectedTripType = TripType.LOCAL
+
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("Viaggio salvato con successo")
+                        }
+
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ciano),
                     modifier = Modifier
@@ -289,6 +323,9 @@ fun Plan() {
                     viewModel.addPoint(Point(name = name, latitude = lat, longitude = lng),context)
                     name = ""
                     showMap = false
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Punto di interesse salvato con successo")
+                    }
                 }
             )
         }
@@ -462,6 +499,13 @@ fun Plan() {
         }
 
     }
+
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
