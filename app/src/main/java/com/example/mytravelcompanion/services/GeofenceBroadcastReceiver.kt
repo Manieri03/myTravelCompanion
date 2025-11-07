@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.data.AppDatabase
+import com.example.mytravelcompanion.util.SharedPrefManager
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingEvent
 import kotlinx.coroutines.CoroutineScope
@@ -23,38 +24,35 @@ import kotlinx.coroutines.launch
 
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
+
     override fun onReceive(context: Context, intent: Intent) {
+        val geofencingEvent = GeofencingEvent.fromIntent(intent) ?: return
+        if (geofencingEvent.hasError()) return
 
-        Log.d("GEOFENCE", "Extras: ${intent.extras?.keySet()}")
-        Log.d("GEOFENCE", "Receiver chiamato! Intent: $intent")
+        val transition = geofencingEvent.geofenceTransition
+        val triggering = geofencingEvent.triggeringGeofences ?: emptyList()
 
-        val geofenceIds = intent.getStringArrayListExtra("com.google.android.location.intent.extra.geofence")
-        Log.d("GEOFENCE", "Fallback geofence ids: $geofenceIds")
+        triggering.forEach { geofence ->
+            val id = geofence.requestId
+            val isInside = SharedPrefManager.isInside(context, id)
 
-        val geofencingEvent = GeofencingEvent.fromIntent(intent)
-        if (geofencingEvent == null) {
-            Log.d("GEOFENCE", "GeofencingEvent null!")
-            return
-        }
-
-        if (geofencingEvent.hasError()) {
-            Log.d("GEOFENCE", "Errore geofence: ${geofencingEvent.errorCode}")
-            return
-        }
-
-        val geofenceTransition = geofencingEvent.geofenceTransition
-        Log.d("GEOFENCE", "Transizione geofence: $geofenceTransition")
-
-        if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
-            val triggeringGeofences = geofencingEvent.triggeringGeofences
-            Log.d("GEOFENCE", "Geofence trigger: ${triggeringGeofences?.map { it.requestId }}")
-            triggeringGeofences?.forEach { geofence ->
-                showNotification(context, geofence.requestId)
+            when (transition) {
+                Geofence.GEOFENCE_TRANSITION_ENTER -> {
+                    if (!isInside) {
+                        showNotification(context, id)
+                        SharedPrefManager.setInside(context, id, true)
+                    } else {
+                        Log.d("GEOFENCE", "Ignoro ingresso per $id")
+                    }
+                }
+                Geofence.GEOFENCE_TRANSITION_EXIT -> {
+                    SharedPrefManager.setInside(context, id, false)
+                    Log.d("GEOFENCE", "uscita da $id")
+                }
             }
-        } else {
-            Log.d("GEOFENCE", "Transizione non gestita: $geofenceTransition")
         }
     }
+
 
 
     private fun showNotification(context: Context, pointName: String) {

@@ -1,11 +1,10 @@
 package com.example.mytravelcompanion.data
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mytravelcompanion.util.DistanceCalculator
-import com.example.mytravelcompanion.util.InactivityPrefs
+import com.example.mytravelcompanion.util.SharedPrefManager
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,7 +14,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.withContext
 
 class TripViewModel(private val dao: TripDao,
@@ -209,7 +207,7 @@ class TripViewModel(private val dao: TripDao,
     fun markTripAsCompleted(tripId: Int, context: Context) {
         viewModelScope.launch {
             dao.markTripAsCompleted(tripId)
-            InactivityPrefs.resetNotified(context)
+            SharedPrefManager.resetNotified(context)
         }
     }
 

@@ -41,7 +41,9 @@ object GeofenceHelper {
                 .setRequestId(it.name)
                 .setCircularRegion(it.latitude, it.longitude, GEOFENCE_RADIUS)
                 .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
+                .setTransitionTypes(
+                    Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT
+                )
                 .build()
         }
 
