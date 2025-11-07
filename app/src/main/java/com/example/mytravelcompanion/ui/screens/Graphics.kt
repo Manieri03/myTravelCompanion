@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.data.AppDatabase
 import com.example.mytravelcompanion.data.Trip
+import com.example.mytravelcompanion.data.TripViewModel
 import com.example.mytravelcompanion.ui.theme.ciano
 import com.example.mytravelcompanion.ui.theme.myTipography2
 import com.google.android.gms.maps.model.CameraPosition
@@ -53,30 +55,26 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun Graphics() {
-    val context = LocalContext.current
-    val tripDao = AppDatabase.getDatabase(context).tripDao()
+fun Graphics(tripViewModel: TripViewModel) {
+    val trips by tripViewModel.trips.collectAsState()
     var monthlyTripCount by remember { mutableStateOf(List(12) { 0 }) }
     var loading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            val trips = tripDao.getAllTripsOnce()
-            val counts = MutableList(12) { 0 }
+    LaunchedEffect(trips) {
+        val counts = MutableList(12) { 0 }
+        val currentYear = Year.now().value
 
-            val currentYear = Year.now().value
-            trips.forEach { trip ->
-                trip.startDate?.let { date ->
-                    if (date.year == currentYear) {
-                        val monthIndex = date.monthValue - 1
-                        counts[monthIndex] += 1
-                    }
+        trips.forEach { trip ->
+            trip.startDate?.let { date ->
+                if (date.year == currentYear) {
+                    val monthIndex = date.monthValue - 1
+                    counts[monthIndex] += 1
                 }
             }
-
-            monthlyTripCount = counts
-            loading = false
         }
+
+        monthlyTripCount = counts
+        loading = false
     }
 
     val verticalScrollState = rememberScrollState()
@@ -128,7 +126,7 @@ fun Graphics() {
                 }
             } else {
                 Text("Numero di viaggi", style=myTipography2.labelMedium, fontSize = 22.sp)
-                MonthlyTripsChart(monthlyTripCount)
+                MonthlyTripsChart(monthlyTripCount, tripViewModel)
             }
         }
 
@@ -258,28 +256,31 @@ fun JourneyHeatmapScreen(onMapTouchChange: (Boolean) -> Unit){
 }
 
 @Composable
-fun MonthlyTripsChart(monthlyTripCount: List<Int>) {
+fun MonthlyTripsChart(monthlyTripCount: List<Int>, tripViewModel: TripViewModel) {
     val context=LocalContext.current
     val max = monthlyTripCount.maxOrNull()?.toFloat() ?: 1f
     val scrollState = rememberScrollState()
-    val tripDao = AppDatabase.getDatabase(context).tripDao()
 
     var selectedMonthIndex by remember { mutableStateOf<Int?>(null) }
     var monthTrips by remember { mutableStateOf<List<Trip>>(emptyList()) }
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale("it"))
 
+    val tripsForMonth by tripViewModel.tripsForMonth.collectAsState()
+
     LaunchedEffect(selectedMonthIndex) {
         selectedMonthIndex?.let { monthIndex ->
             val year = Year.now().value
-            val month = monthIndex + 1 // da 0–11 a 1–12
+            val month = monthIndex + 1
 
             val firstDay = LocalDate.of(year, month, 1)
             val lastDay = YearMonth.of(year, month).atEndOfMonth()
 
-            monthTrips = withContext(Dispatchers.IO) {
-                tripDao.getTripsForMonth(firstDay, lastDay)
-            }
+            tripViewModel.loadTripsForMonth(firstDay, lastDay)
         }
+    }
+
+    LaunchedEffect(tripsForMonth) {
+        monthTrips = tripsForMonth
     }
 
     // Dialog

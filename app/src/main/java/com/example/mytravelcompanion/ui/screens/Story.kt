@@ -71,15 +71,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun Story() {
+fun Story(tripViewModel: TripViewModel) {
     val context = LocalContext.current
-    val dao = AppDatabase.getDatabase(context).tripDao()
-    val markerDAO = AppDatabase.getDatabase(context).MarkerDAO()
-    val journeyDAO = AppDatabase.getDatabase(context).JourneyDAO()
-    val pointDAO= AppDatabase.getDatabase(context).PointDAO()
-    val tripViewModel: TripViewModel = viewModel(
-        factory = TripViewModelFactory(dao, markerDAO, journeyDAO,pointDAO)
-    )
 
     val trips by tripViewModel.trips.collectAsState(initial = emptyList())
     val pastTrips = trips.filter {

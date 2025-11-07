@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.ui.theme.myTipography2
+import com.example.mytravelcompanion.util.TripType
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -61,11 +62,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun Plan() {
+fun Plan(viewModel: TripViewModel) {
     val context = LocalContext.current
-    val db = remember { AppDatabase.getDatabase(context) }
-    val factory = remember { TripViewModelFactory(db.tripDao(), db.MarkerDAO(), db.JourneyDAO(), db.PointDAO()) }
-    val viewModel: TripViewModel = viewModel(factory = factory)
     val trips by viewModel.trips.collectAsState(initial = emptyList())
     val points by viewModel.points.collectAsState(initial = emptyList())
     LaunchedEffect(Unit) {

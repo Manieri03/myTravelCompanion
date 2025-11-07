@@ -26,11 +26,25 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
 
     override fun onReceive(context: Context, intent: Intent) {
+
+        Log.d("GEOFENCE", "Extras: ${intent.extras?.keySet()}")
+        Log.d("GEOFENCE", "Receiver chiamato! Intent: $intent")
+
         val geofencingEvent = GeofencingEvent.fromIntent(intent) ?: return
         if (geofencingEvent.hasError()) return
 
         val transition = geofencingEvent.geofenceTransition
         val triggering = geofencingEvent.triggeringGeofences ?: emptyList()
+
+        if (geofencingEvent == null) {
+            Log.d("GEOFENCE", "GeofencingEvent null!")
+            return
+        }
+
+        if (geofencingEvent.hasError()) {
+            Log.d("GEOFENCE", "Errore geofence: ${geofencingEvent.errorCode}")
+            return
+        }
 
         triggering.forEach { geofence ->
             val id = geofence.requestId

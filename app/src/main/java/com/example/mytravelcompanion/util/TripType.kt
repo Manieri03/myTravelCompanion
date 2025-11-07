@@ -1,4 +1,4 @@
-package com.example.mytravelcompanion.data
+package com.example.mytravelcompanion.util
 
 enum class TripType(val displayName: String) {
     LOCAL("Viaggio locale"),

@@ -77,7 +77,7 @@ import androidx.navigation.NavController
 import com.example.mytravelcompanion.data.LatLngSerializable
 import com.example.mytravelcompanion.data.MarkerDAO
 import com.example.mytravelcompanion.data.Trip
-import com.example.mytravelcompanion.data.TripType
+import com.example.mytravelcompanion.util.TripType
 import com.example.mytravelcompanion.service.JourneyService
 import com.example.mytravelcompanion.ui.theme.blu
 import com.example.mytravelcompanion.ui.theme.ciano
@@ -102,15 +102,8 @@ import com.example.mytravelcompanion.util.PhotoHelper.compressImage
 import kotlinx.coroutines.coroutineScope
 
 @Composable
-fun Live(navController: NavController) {
+fun Live(navController: NavController, tripViewModel: TripViewModel) {
     val context = LocalContext.current
-    val dao = AppDatabase.getDatabase(context).tripDao()
-    val markerDAO= AppDatabase.getDatabase(context).MarkerDAO()
-    val journeyDAO= AppDatabase.getDatabase(context).JourneyDAO()
-    val pointDAO= AppDatabase.getDatabase(context).PointDAO()
-    val tripViewModel: TripViewModel = viewModel(
-        factory = TripViewModelFactory(dao, markerDAO, journeyDAO,pointDAO)
-    )
 
     val trips by tripViewModel.trips.collectAsState(initial = emptyList())
     val currentTrip = tripViewModel.getCurrentTrip(trips)
@@ -360,12 +353,6 @@ fun TripMap(
 
     var startLatLng by remember { mutableStateOf<LatLng?>(null) }
     val journeyPoints by tripViewModel.journeyPoints.collectAsState()
-    var selectedJourney by remember {
-        mutableStateOf<com.example.mytravelcompanion.data.Journey?>(
-            null
-        )
-    }
-    var showJourneyDialog by remember { mutableStateOf(false) }
 
     var customNoteIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
     var customPhotoIcon by remember { mutableStateOf<BitmapDescriptor?>(null) }
@@ -550,25 +537,8 @@ fun TripMap(
                 }
             },
             onMapClick = { latLng ->
-                val thresholdMeters = 15.0
-                val clickedJourneyIndex = alljourneyPoints.indexOfFirst { path ->
-                    path.zipWithNext().any { (a, b) ->
-                        val distToSegment = DistanceCalculator.distanceToSegment(
-                            LatLngSerializable(latLng.latitude, latLng.longitude),
-                            LatLngSerializable(a.latitude, a.longitude),
-                            LatLngSerializable(b.latitude, b.longitude)
-                        )
-                        distToSegment < thresholdMeters
-                    }
-                }
-
-                if (clickedJourneyIndex != -1) {
-                    selectedJourney = journeys.getOrNull(clickedJourneyIndex)
-                    showJourneyDialog = true
-                } else {
-                    selectedLatLng = latLng
-                    showMainDialog = true
-                }
+                selectedLatLng = latLng
+                showMainDialog = true
             },
         ) {
             // polilinee
@@ -624,35 +594,7 @@ fun TripMap(
             }
         }
 
-        // Dialogs
-        if (showJourneyDialog && selectedJourney != null) {
-            AlertDialog(
-                onDismissRequest = {
-                    showJourneyDialog = false
-                    selectedJourney = null
-                },
-                title = { Text("Dettagli percorso", style = myTipography2.titleLarge) },
-                text = {
-                    val km = selectedJourney!!.distanceMeters?.div(1000)
-                    val duration = selectedJourney!!.durationSeconds
-                    val minutes = duration?.div(60)
-                    val seconds = duration?.rem(60)
-                    Column {
-                        Text("Distanza: ${"%.2f".format(km)} km", style = myTipography2.bodyLarge)
-                        Text(
-                            "Durata: ${minutes} min ${seconds} sec",
-                            style = myTipography2.bodyLarge
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showJourneyDialog = false
-                        selectedJourney = null
-                    }) { Text("Chiudi", color = ciano, style = myTipography2.bodyLarge) }
-                }
-            )
-        }
+        //dialogs
 
         if (showMarkerDialog && selectedMarker != null) {
             AlertDialog(

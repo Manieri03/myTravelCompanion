@@ -59,16 +59,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             MyTravelCompanionTheme {
                 val context = LocalContext.current
-                val dao = AppDatabase.getDatabase(context).tripDao()
-                val markerDAO = AppDatabase.getDatabase(context).MarkerDAO()
-                val journeyDAO = AppDatabase.getDatabase(context).JourneyDAO()
-                val pointDAO= AppDatabase.getDatabase(context).PointDAO()
+                val db = AppDatabase.getDatabase(context)
+                val dao = db.tripDao()
+                val markerDAO = db.MarkerDAO()
+                val journeyDAO = db.JourneyDAO()
+                val pointDAO = db.PointDAO()
 
                 val tripViewModel: TripViewModel = viewModel(
                     factory = TripViewModelFactory(dao, markerDAO, journeyDAO, pointDAO)
                 )
 
-                NavHost()
+                NavHost(tripViewModel)
             }
         }
     }

@@ -41,12 +41,8 @@ import com.example.mytravelcompanion.R
 
 
 @Composable
-fun Gallery() {
+fun Gallery(viewModel: TripViewModel) {
     val context = LocalContext.current
-    val db = AppDatabase.getDatabase(context)
-    val viewModel: TripViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-        factory = TripViewModelFactory(db.tripDao(), db.MarkerDAO(), db.JourneyDAO(), db.PointDAO())
-    )
 
     val memories by viewModel.photos.collectAsState()
     val scrollState = rememberScrollState()

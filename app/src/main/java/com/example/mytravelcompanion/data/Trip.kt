@@ -3,6 +3,7 @@ package com.example.mytravelcompanion.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.mytravelcompanion.util.TripType
 import java.time.LocalDate
 
 @Entity(tableName = "trips")

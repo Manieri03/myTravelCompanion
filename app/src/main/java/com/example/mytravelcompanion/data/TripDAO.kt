@@ -15,10 +15,6 @@ interface TripDao {
     @Query("SELECT * FROM trips")
     fun getAllTrips(): Flow<List<Trip>>
 
-    @Query("SELECT * FROM trips")
-    suspend fun getAllTripsOnce(): List<Trip>
-
-
     @Query("DELETE FROM trips")
     suspend fun deleteAllTrips()
 

@@ -1,6 +1,7 @@
 package com.example.mytravelcompanion.data
 
 import androidx.room.TypeConverter
+import com.example.mytravelcompanion.util.TripType
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
