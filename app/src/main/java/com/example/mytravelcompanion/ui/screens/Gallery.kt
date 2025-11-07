@@ -35,7 +35,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.mytravelcompanion.R
+
 
 @Composable
 fun Gallery() {
@@ -48,7 +51,7 @@ fun Gallery() {
     val memories by viewModel.photos.collectAsState()
     val scrollState = rememberScrollState()
 
-    var selectedImage by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var selectedImagePath by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadMemories()
@@ -109,33 +112,21 @@ fun Gallery() {
                     ) {
                         photos.forEach { marker ->
                             marker.photoPath?.let { path ->
-                                val bitmap = remember(path) {
-                                    try {
-                                        if (path.startsWith("content://")) {
-                                            val stream =
-                                                context.contentResolver.openInputStream(android.net.Uri.parse(path))
-                                            BitmapFactory.decodeStream(stream).also { stream?.close() }
-                                        } else {
-                                            BitmapFactory.decodeFile(path)
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(path)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Foto ricordo",
+                                    modifier = Modifier
+                                        .size(110.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .border(2.dp, ciano, RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            selectedImagePath = path
                                         }
-                                    } catch (e: Exception) {
-                                        null
-                                    }
-                                }
+                                )
 
-                                bitmap?.let {
-                                    Image(
-                                        bitmap = it.asImageBitmap(),
-                                        contentDescription = "Foto ricordo",
-                                        modifier = Modifier
-                                            .size(110.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .border(2.dp, ciano, RoundedCornerShape(12.dp))
-                                            .clickable {
-                                                selectedImage = it
-                                            }
-                                    )
-                                }
                             }
                         }
                     }
@@ -144,16 +135,19 @@ fun Gallery() {
         }
     }
 
-    if (selectedImage != null) {
-        Dialog(onDismissRequest = { selectedImage = null }) {
+    if (selectedImagePath != null) {
+        Dialog(onDismissRequest = { selectedImagePath = null }) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(1.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    bitmap = selectedImage!!.asImageBitmap(),
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(selectedImagePath)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = "Foto ingrandita",
                     modifier = Modifier
                         .fillMaxWidth()
@@ -169,7 +163,7 @@ fun Gallery() {
                         .border(3.dp, ciano, RoundedCornerShape(16.dp))
                         .background(ciano)
                 ) {
-                    TextButton(onClick = { selectedImage = null }) {
+                    TextButton(onClick = { selectedImagePath = null }) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Chiudi",
@@ -180,4 +174,5 @@ fun Gallery() {
             }
         }
     }
+
 }

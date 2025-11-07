@@ -8,11 +8,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.mytravelcompanion.R
 
-val ChauPhilomeneFamily = FontFamily(
-    Font(R.font.chau_philomene_regular, FontWeight.Normal),
-    Font(R.font.chau_philomene_italic, FontWeight.Medium)
-)
-
 val SoraFamily= FontFamily(
     Font(R.font.sora_regular, FontWeight.Normal),
     Font(R.font.sora_bold, FontWeight.Bold),
@@ -34,24 +29,5 @@ val myTipography2 = Typography(
         fontFamily = SoraFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp
-    )
-)
-
-
-val myTipography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = ChauPhilomeneFamily,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = ChauPhilomeneFamily,
-        fontWeight = FontWeight.Bold,
-        fontSize = 20.sp
-    ),
-    labelMedium = TextStyle(
-        fontFamily = ChauPhilomeneFamily,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp
     )
 )

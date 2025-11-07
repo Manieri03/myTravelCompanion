@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -78,12 +80,13 @@ fun Graphics() {
     }
 
     val verticalScrollState = rememberScrollState()
+    var isMapInteracting by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(start = 18.dp, end = 18.dp, top = 55.dp, bottom = 18.dp)
-            .verticalScroll(verticalScrollState),
+            .verticalScroll(verticalScrollState, enabled = !isMapInteracting),
         verticalArrangement = Arrangement.spacedBy(40.dp)
     ) {
         Row(
@@ -118,7 +121,7 @@ fun Graphics() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Heat map dei tuoi percorsi", style=myTipography2.labelMedium, fontSize = 22.sp)
-            JourneyHeatmapScreen()
+            JourneyHeatmapScreen(onMapTouchChange = { isMapInteracting = it })
             if (loading) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text("Caricamento grafico...", style = myTipography2.bodyLarge)
@@ -134,7 +137,7 @@ fun Graphics() {
 }
 
 @Composable
-fun JourneyHeatmapScreen() {
+fun JourneyHeatmapScreen(onMapTouchChange: (Boolean) -> Unit){
     val context = LocalContext.current
     val journeyDAO = AppDatabase.getDatabase(context).JourneyDAO()
 
@@ -226,6 +229,13 @@ fun JourneyHeatmapScreen() {
         uiSettings = MapUiSettings(zoomControlsEnabled = true)
     ) {
         MapEffect(heatmapPoints) { map ->
+            map.setOnCameraMoveStartedListener {
+                onMapTouchChange(true)
+            }
+            map.setOnCameraIdleListener {
+                onMapTouchChange(false)
+            }
+
             map.clear()
             val colors = intArrayOf(
                 android.graphics.Color.rgb(0, 255, 255),
@@ -274,7 +284,7 @@ fun MonthlyTripsChart(monthlyTripCount: List<Int>) {
 
     // Dialog
     selectedMonthIndex?.let { monthIndex ->
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { selectedMonthIndex = null },
             title = { Text("Viaggi di ${java.text.DateFormatSymbols().months[monthIndex]}", style=myTipography2.titleLarge) },
             text = {
@@ -290,7 +300,7 @@ fun MonthlyTripsChart(monthlyTripCount: List<Int>) {
                 }
             },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { selectedMonthIndex = null }) {
+                TextButton(onClick = { selectedMonthIndex = null }) {
                     Text("Chiudi")
                 }
             }

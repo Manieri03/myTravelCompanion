@@ -59,6 +59,9 @@ android {
 
 dependencies {
 
+    //immagini
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
     implementation("com.google.code.gson:gson:2.10.1")
     //map compose
     implementation("com.google.maps.android:maps-compose:2.14.0")

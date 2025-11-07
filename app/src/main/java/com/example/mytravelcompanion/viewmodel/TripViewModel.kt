@@ -54,15 +54,14 @@ class TripViewModel(private val dao: TripDao,
     private val _points = MutableStateFlow<List<Point>>(emptyList())
     val points: StateFlow<List<Point>> get() = _points
 
+
+    init {
+        checkAndUpdateTripCompletion()
+    }
+
     fun addTrip(trip: Trip) {
         viewModelScope.launch {
             dao.insertTrip(trip)
-        }
-    }
-
-    fun deleteAllTrips() {
-        viewModelScope.launch {
-            dao.deleteAllTrips()
         }
     }
 
@@ -96,13 +95,9 @@ class TripViewModel(private val dao: TripDao,
         return list
     }
 
-    suspend fun deleteMarkersForTrip(tripId: Int) {
-        markerDao.deleteMarkersByTrip(tripId)
-    }
     suspend fun deleteMarker(marker: Marker) {
         markerDao.deleteMarker(marker)
     }
-
 
     fun startJourney(tripId: Int) = viewModelScope.launch {
         _currentJourney.value?.let { current ->
@@ -210,35 +205,6 @@ class TripViewModel(private val dao: TripDao,
         _journeys.value = journeys
     }
 
-    fun printAllJourneys() {
-        viewModelScope.launch {
-            val journeys = withContext(Dispatchers.IO) {
-                journeyDao.getAllJourneys()
-            }
-            journeys.forEach { journey ->
-                println(journey)
-            }
-        }
-    }
-
-    fun deleteAllJourneys() {
-        viewModelScope.launch {
-            journeyDao.deleteAllJourneys()
-            _allJourneyPoints.value = emptyList()
-            _currentJourney.value = null
-            _journeyPoints.value = emptyList()
-            _isJourneyActive.value = false
-            android.util.Log.d("TripVM", "Tutti i journey eliminati dal DB")
-        }
-    }
-
-    fun deleteJourneysForTrip(tripId: Int) {
-        viewModelScope.launch {
-            journeyDao.deleteJourneysForTrip(tripId)
-            _allJourneyPoints.value = _allJourneyPoints.value.filterNot { false }
-            android.util.Log.d("TripVM", "Journey del viaggio $tripId eliminati")
-        }
-    }
 
     fun markTripAsCompleted(tripId: Int, context: Context) {
         viewModelScope.launch {

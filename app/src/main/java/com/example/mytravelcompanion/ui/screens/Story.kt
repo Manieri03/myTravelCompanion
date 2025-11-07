@@ -1,5 +1,6 @@
 package com.example.mytravelcompanion.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,12 +14,14 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -30,12 +33,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.data.AppDatabase
 import com.example.mytravelcompanion.data.Trip
@@ -143,7 +148,7 @@ fun Story() {
                 }
 
                 // Colonna filtri animata
-                androidx.compose.animation.AnimatedVisibility(visible = filtersExpanded) {
+                AnimatedVisibility(visible = filtersExpanded) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -281,9 +286,9 @@ fun Story() {
                         tripViewModel.deleteTrip(selectedTrip!!)
                         selectedTrip = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color.Red)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) {
-                    Text("Elimina viaggio", style = myTipography2.bodyLarge, color = androidx.compose.ui.graphics.Color.White)
+                    Text("Elimina viaggio", style = myTipography2.bodyLarge, color = Color.White)
                 }
             }
         }
@@ -470,7 +475,7 @@ fun TripMapPreview(
         // dialogs
 
         if (showJourneyDialog && selectedJourney != null) {
-            androidx.compose.material3.AlertDialog(
+            AlertDialog(
                 onDismissRequest = {
                     showJourneyDialog = false
                     selectedJourney = null
@@ -487,7 +492,7 @@ fun TripMapPreview(
                     }
                 },
                 confirmButton = {
-                    androidx.compose.material3.TextButton(onClick = {
+                    TextButton(onClick = {
                         showJourneyDialog = false
                         selectedJourney = null
                     }) { Text("Chiudi", color = ciano) }
@@ -496,7 +501,7 @@ fun TripMapPreview(
         }
 
         if (showMarkerDialog && selectedMarker != null) {
-            androidx.compose.material3.AlertDialog(
+            AlertDialog(
                 onDismissRequest = {
                     showMarkerDialog = false
                     selectedMarker = null
@@ -522,32 +527,24 @@ fun TripMapPreview(
                             }
 
                             photoPath?.let { path ->
-                                val bitmap = try {
-                                    if (path.startsWith("content://")) {
-                                        val stream = context.contentResolver.openInputStream(android.net.Uri.parse(path))
-                                        android.graphics.BitmapFactory.decodeStream(stream).also { stream?.close() }
-                                    } else {
-                                        android.graphics.BitmapFactory.decodeFile(path)
-                                    }
-                                } catch (e: Exception) { null }
-
-                                bitmap?.let {
-                                    Image(
-                                        bitmap = it.asImageBitmap(),
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(200.dp)
-                                            .border(2.dp, ciano, RoundedCornerShape(16.dp))
-                                            .clip(RoundedCornerShape(16.dp))
-                                    )
-                                }
+                                AsyncImage(
+                                    model = coil.request.ImageRequest.Builder(context)
+                                        .data(path)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Foto ricordo",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(2.dp, ciano, RoundedCornerShape(16.dp))
+                                )
                             }
                         }
                     }
                 },
                 confirmButton = {
-                    androidx.compose.material3.TextButton(
+                    TextButton(
                         onClick = {
                             showMarkerDialog = false
                             selectedMarker = null

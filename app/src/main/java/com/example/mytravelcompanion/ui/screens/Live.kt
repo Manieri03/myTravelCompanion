@@ -46,15 +46,19 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestPermissi
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.mutableStateListOf
@@ -63,6 +67,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import com.example.mytravelcompanion.data.LatLngSerializable
 import com.example.mytravelcompanion.data.MarkerDAO
@@ -86,6 +91,9 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.mytravelcompanion.util.PhotoHelper.compressImage
 
 @Composable
 fun Live(navController: NavController) {
@@ -324,6 +332,8 @@ fun TripMap(
 
     val points by tripViewModel.points.collectAsState(initial = emptyList())
 
+    var showPhotoChoiceDialog by remember { mutableStateOf(false) }
+
     // Recupera la posizione attuale al primo avvio
     LaunchedEffect(Unit) {
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -361,23 +371,23 @@ fun TripMap(
                 inputStream?.copyTo(output)
             }
             inputStream?.close()
-
-            currentPhotoPath = file.absolutePath
+            currentPhotoPath = compressImage(context, file.absolutePath)
         }
         showMainDialog = true
     }
 
+    var photoFile by remember { mutableStateOf<File?>(null) }
+
     val takePictureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        bitmap?.let {
-            val file = File(context.filesDir, "photo_${System.currentTimeMillis()}.jpg")
-            FileOutputStream(file).use { out ->
-                it.compress(Bitmap.CompressFormat.JPEG, 100, out)
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            photoFile?.absolutePath?.let { originalPath ->
+                currentPhotoPath = compressImage(context, originalPath)
             }
-            currentPhotoPath = file.absolutePath
+            showMainDialog = true
         }
-        showMainDialog = true
+
     }
 
     // Aggiornamento posizione utente
@@ -574,7 +584,7 @@ fun TripMap(
 
         // Dialogs
         if (showJourneyDialog && selectedJourney != null) {
-            androidx.compose.material3.AlertDialog(
+            AlertDialog(
                 onDismissRequest = {
                     showJourneyDialog = false
                     selectedJourney = null
@@ -594,7 +604,7 @@ fun TripMap(
                     }
                 },
                 confirmButton = {
-                    androidx.compose.material3.TextButton(onClick = {
+                    TextButton(onClick = {
                         showJourneyDialog = false
                         selectedJourney = null
                     }) { Text("Chiudi", color = ciano, style = myTipography2.bodyLarge) }
@@ -603,7 +613,7 @@ fun TripMap(
         }
 
         if (showMarkerDialog && selectedMarker != null) {
-            androidx.compose.material3.AlertDialog(
+            AlertDialog(
                 onDismissRequest = {
                     showMarkerDialog = false
                     selectedMarker = null
@@ -629,41 +639,25 @@ fun TripMap(
                             }
 
                             photoPath?.let { path ->
-                                val bitmap = try {
-                                    if (path.startsWith("content://")) {
-                                        val stream = context.contentResolver.openInputStream(
-                                            android.net.Uri.parse(path)
-                                        )
-                                        android.graphics.BitmapFactory.decodeStream(stream)
-                                            .also { stream?.close() }
-                                    } else {
-                                        android.graphics.BitmapFactory.decodeFile(path)
-                                    }
-                                } catch (e: Exception) {
-                                    null
-                                }
-
-                                bitmap?.let {
-                                    Image(
-                                        bitmap = it.asImageBitmap(),
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(200.dp)
-                                            .border(
-                                                width = 2.dp,
-                                                color = ciano,
-                                                shape = RoundedCornerShape(16.dp)
-                                            )
-                                            .clip(RoundedCornerShape(16.dp))
-                                    )
-                                }
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(path)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Foto ricordo",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                        .border(width = 2.dp, color = ciano, shape = RoundedCornerShape(16.dp))
+                                        .clip(RoundedCornerShape(16.dp))
+                                )
                             }
+
                         }
                     }
                 },
                 confirmButton = {
-                    androidx.compose.material3.TextButton(onClick = {
+                    TextButton(onClick = {
                         coroutineScope.launch {
                             selectedMarker?.let { m ->
                                 tripViewModel.deleteMarker(m)
@@ -675,7 +669,7 @@ fun TripMap(
                     }) { Text("Rimuovi marker", style = myTipography2.bodyLarge, color = ciano) }
                 },
                 dismissButton = {
-                    androidx.compose.material3.TextButton(onClick = {
+                    TextButton(onClick = {
                         showMarkerDialog = false
                         selectedMarker = null
                     }) { Text("Chiudi", style = myTipography2.bodyLarge, color = ciano) }
@@ -684,7 +678,7 @@ fun TripMap(
         }
 
         if (showMainDialog && selectedLatLng != null) {
-            androidx.compose.material3.AlertDialog(
+            AlertDialog(
                 onDismissRequest = { showMainDialog = false },
                 title = { Text("Aggiungi un ricordo", style = myTipography2.titleLarge) },
                 text = {
@@ -713,7 +707,7 @@ fun TripMap(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            androidx.compose.material3.TextButton(onClick = {
+                            TextButton(onClick = {
                                 showNoteDialog = true
                                 showMainDialog = false
                             }) {
@@ -738,9 +732,8 @@ fun TripMap(
                                 }
                             }
 
-                            androidx.compose.material3.TextButton(onClick = {
-                                showMainDialog = false
-                                pickImageLauncher.launch("image/*")
+                            TextButton(onClick = {
+                                showPhotoChoiceDialog = true
                             }) {
                                 Column(
                                     modifier = Modifier
@@ -762,6 +755,50 @@ fun TripMap(
                                     )
                                 }
                             }
+
+                            if (showPhotoChoiceDialog) {
+                                AlertDialog(
+                                    onDismissRequest = { showPhotoChoiceDialog = false },
+                                    title = { Text("Aggiungi foto", style = myTipography2.titleLarge) },
+                                    text = {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(25.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Button(
+                                                onClick = {
+                                                    showPhotoChoiceDialog = false
+                                                    pickImageLauncher.launch("image/*")
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = ciano)
+                                            ) {
+                                                Text("Scegli dalla galleria", style = myTipography2.bodyLarge)
+                                            }
+
+                                            Button(
+                                                onClick = {
+                                                    showPhotoChoiceDialog = false
+                                                    photoFile = File(context.filesDir, "photo_${System.currentTimeMillis()}.jpg")
+                                                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", photoFile!!)
+                                                    takePictureLauncher.launch(uri)
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = blu)
+                                            ) {
+                                                Text("Scatta una foto", style = myTipography2.bodyLarge)
+                                            }
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            showPhotoChoiceDialog = false
+                                            showMainDialog = true
+                                        }) { Text("Annulla", color = ciano, style = myTipography2.bodyLarge) }
+                                    }
+                                )
+                            }
+
+
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -771,7 +808,7 @@ fun TripMap(
                                 .padding(top = 8.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            androidx.compose.material3.TextButton(onClick = {
+                            TextButton(onClick = {
                                 val noteToSave = if (currentNote.isNotEmpty()) currentNote else null
                                 val photoToSave = currentPhotoPath
                                 val latLngToSave = selectedLatLng
@@ -800,7 +837,7 @@ fun TripMap(
                                 showMainDialog = false
                             }) { Text("Fine", style = myTipography2.bodyLarge, color = ciano) }
 
-                            androidx.compose.material3.TextButton(onClick = {
+                            TextButton(onClick = {
                                 showMainDialog = false
                                 currentNote = ""
                                 currentPhotoPath = null
@@ -813,11 +850,11 @@ fun TripMap(
         }
 
         if (showNoteDialog) {
-            androidx.compose.material3.AlertDialog(
+            AlertDialog(
                 onDismissRequest = { showNoteDialog = false },
                 title = { Text("Scrivi una nota", style = myTipography2.labelMedium) },
                 text = {
-                    androidx.compose.material3.TextField(
+                    TextField(
                         value = currentNote,
                         onValueChange = { currentNote = it },
                         placeholder = { Text("Scrivi qui...", style = myTipography2.bodyLarge) },
@@ -826,13 +863,13 @@ fun TripMap(
                     )
                 },
                 confirmButton = {
-                    androidx.compose.material3.TextButton(onClick = {
+                    TextButton(onClick = {
                         showNoteDialog = false
                         showMainDialog = true
                     }) { Text("Salva", style = myTipography2.labelMedium, color = ciano) }
                 },
                 dismissButton = {
-                    androidx.compose.material3.TextButton(onClick = {
+                    TextButton(onClick = {
                         showNoteDialog = false
                         showMainDialog = true
                     }) { Text("Annulla", style = myTipography2.bodyLarge, color = ciano) }
@@ -841,3 +878,4 @@ fun TripMap(
         }
     }
 }
+
