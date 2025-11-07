@@ -57,6 +57,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.DisposableEffect
@@ -66,7 +69,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import com.example.mytravelcompanion.data.LatLngSerializable
@@ -94,6 +99,7 @@ import java.io.FileOutputStream
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.mytravelcompanion.util.PhotoHelper.compressImage
+import kotlinx.coroutines.coroutineScope
 
 @Composable
 fun Live(navController: NavController) {
@@ -114,6 +120,8 @@ fun Live(navController: NavController) {
 
     val distance by tripViewModel.liveDistanceMeters.collectAsState()
     val duration by tripViewModel.liveDurationSeconds.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val launcher = rememberLauncherForActivityResult(RequestPermission()) { isGranted: Boolean ->
         //
@@ -206,6 +214,9 @@ fun Live(navController: NavController) {
                                             .let { tripViewModel.startJourney(it) }
                                         serviceIntent.putExtra("tripId", currentTrip.id)
                                         ContextCompat.startForegroundService(context, serviceIntent)
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Registrazione del percorso avviata")
+                                        }
                                     } else {
                                         // Richiedi permesso
                                         launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -214,6 +225,9 @@ fun Live(navController: NavController) {
                                     // Ferma percorso e poi service
                                     tripViewModel.stopJourney()
                                     context.stopService(serviceIntent)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Registrazione del percorso stoppata")
+                                    }
                                 }
                             }, colors = ButtonDefaults.buttonColors(containerColor = ciano)
                         ) {
@@ -227,6 +241,9 @@ fun Live(navController: NavController) {
                             onClick = {
                                 currentTrip?.let {
                                     tripViewModel.markTripAsCompleted(it.id,context)
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Hai concluso il tuo viaggio")
+                                    }
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = blu)
@@ -287,6 +304,31 @@ fun Live(navController: NavController) {
         }
 
     }
+
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        snackbar = { snackbarData ->
+            Snackbar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                containerColor = ciano,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = snackbarData.visuals.message,
+                    color = Color.White,
+                    style=myTipography2.labelMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    )
 }
 
 @SuppressLint("MissingPermission")

@@ -38,7 +38,9 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.ui.theme.myTipography2
@@ -409,6 +411,9 @@ fun Plan() {
                                         .size(24.dp)
                                         .clickable {
                                             viewModel.deleteTrip(it)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Viaggio programmato eliminato con successo")
+                                            }
                                         }
                                 )
                             }
@@ -489,6 +494,9 @@ fun Plan() {
                                         .size(24.dp)
                                         .clickable {
                                             viewModel.deletePoint(point,context)
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Punto di interesse eliminato con successo")
+                                            }
                                         }
                                 )
                             }
@@ -504,8 +512,27 @@ fun Plan() {
         hostState = snackbarHostState,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp)
+            .padding(top = 8.dp),
+        snackbar = { snackbarData ->
+            Snackbar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                containerColor = ciano,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = snackbarData.visuals.message,
+                    color = Color.White,
+                    style=myTipography2.labelMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     )
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

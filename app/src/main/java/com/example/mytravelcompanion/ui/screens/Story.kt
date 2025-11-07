@@ -20,6 +20,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -60,6 +65,7 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -83,6 +89,8 @@ fun Story() {
     var selectedTrip by remember { mutableStateOf<Trip?>(null) }
 
     val scrollState = rememberScrollState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     if (selectedTrip == null) {
         Column(
@@ -189,6 +197,9 @@ fun Story() {
                             onClick = {
                                 searchDestination = ""
                                 selectedStartDate = null
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("Filtri resettati correttamente")
+                                }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = ciano),
                             modifier = Modifier
@@ -293,6 +304,31 @@ fun Story() {
             }
         }
     }
+
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        snackbar = { snackbarData ->
+            Snackbar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                containerColor = ciano,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = snackbarData.visuals.message,
+                    color = Color.White,
+                    style=myTipography2.labelMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    )
 }
 
 @Composable
