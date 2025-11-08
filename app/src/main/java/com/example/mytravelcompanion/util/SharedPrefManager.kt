@@ -24,23 +24,5 @@ object SharedPrefManager {
         prefs.edit().putBoolean(KEY_ALREADY_NOTIFIED, false).apply()
     }
 
-    //Geofencing
-
-    private const val PREF_NAME = "geofence_state"
-
-    private fun prefs(context: Context) =
-        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-
-    fun isInside(context: Context, geofenceId: String): Boolean {
-        return prefs(context).getBoolean(geofenceId, false)
-    }
-
-    fun setInside(context: Context, geofenceId: String, inside: Boolean) {
-        prefs(context).edit().putBoolean(geofenceId, inside).apply()
-    }
-
-    fun clearAll(context: Context) {
-        prefs(context).edit().clear().apply()
-    }
 
 }

@@ -437,32 +437,20 @@ fun TripMapPreview(
                     customBothIcon = fallback
                     customPointIcon=fallback
                 }
-            },
-            onMapClick = { latLng ->
-                val thresholdMeters = 20.0
-                val clickedJourneyIndex = journeyPoints.indexOfFirst { path ->
-                    path.zipWithNext().any { (a, b) ->
-                        val distToSegment = com.example.mytravelcompanion.util.DistanceCalculator.distanceToSegment(
-                            com.example.mytravelcompanion.data.LatLngSerializable(latLng.latitude, latLng.longitude),
-                            com.example.mytravelcompanion.data.LatLngSerializable(a.latitude, a.longitude),
-                            com.example.mytravelcompanion.data.LatLngSerializable(b.latitude, b.longitude)
-                        )
-                        distToSegment < thresholdMeters
-                    }
-                }
-                if (clickedJourneyIndex != -1) {
-                    selectedJourney = journeys.getOrNull(clickedJourneyIndex)
-                    showJourneyDialog = true
-                }
             }
         ) {
             //journeys
-            for (path in journeyPoints) {
+            journeyPoints.forEachIndexed { index, path ->
                 if (path.isNotEmpty()) {
                     com.google.maps.android.compose.Polyline(
                         points = path,
                         color = ciano.copy(alpha = 0.7f),
-                        width = 15f
+                        width = 25f,
+                        clickable = true,
+                        onClick = {
+                            selectedJourney = journeys.getOrNull(index)
+                            showJourneyDialog = true
+                        }
                     )
                 }
             }

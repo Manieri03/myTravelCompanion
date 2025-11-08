@@ -10,6 +10,7 @@ import java.io.FileOutputStream
 
 object PhotoHelper {
 
+    //Classe di utility per la compressione delle immagini
     fun compressImage(context: Context, originalPath: String): String {
         try {
             val originalFile = File(originalPath)

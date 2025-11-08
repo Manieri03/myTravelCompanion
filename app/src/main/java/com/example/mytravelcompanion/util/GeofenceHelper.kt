@@ -17,7 +17,10 @@ import com.google.android.gms.location.LocationServices
 
 object GeofenceHelper {
 
+    //Tag per debug
     private const val TAG = "GEOFENCE"
+
+    //Lunghezza del raggio attorno al punto di interesse
     private const val GEOFENCE_RADIUS_METERS = 200f
 
     private fun getGeofencingClient(context: Context): GeofencingClient {
@@ -26,7 +29,6 @@ object GeofenceHelper {
 
     private fun getGeofencePendingIntent(context: Context): PendingIntent {
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
-        // FLAG_MUTABLE è richiesto per i geofence
         return PendingIntent.getBroadcast(
             context,
             0,
@@ -35,6 +37,7 @@ object GeofenceHelper {
         )
     }
 
+    //registrazione di tutti i punti presenti sul db
     fun registerAll(context: Context, points: List<Point>) {
         if (points.isEmpty()) {
             Log.d(TAG, "Nessun punto da registrare")
@@ -79,15 +82,18 @@ object GeofenceHelper {
                 .addOnFailureListener { e ->
                     Log.e(TAG, "Errore registrazione geofence: ${e.message}", e)
                 }
+
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException: ${e.message}", e)
         }
     }
 
+    //registrazione di un nuovo punto
     fun registerOne(context: Context, point: Point) {
         registerAll(context, listOf(point))
     }
 
+    //rimozione di un geofence
     fun removeOne(context: Context, point: Point) {
         val client = getGeofencingClient(context)
         client.removeGeofences(listOf(point.name))
@@ -114,7 +120,7 @@ object GeofenceHelper {
             true
         }
 
-        Log.d(TAG, "Permessi - Fine: $fineLocation, Background: $backgroundLocation")
+        Log.d(TAG, "Permessi: Fine: $fineLocation, Background: $backgroundLocation")
         return fineLocation && backgroundLocation
     }
 }
