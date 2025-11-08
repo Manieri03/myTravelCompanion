@@ -42,4 +42,5 @@ object SharedPrefManager {
     fun clearAll(context: Context) {
         prefs(context).edit().clear().apply()
     }
+
 }
