@@ -1,111 +1,104 @@
 package com.example.mytravelcompanion.services
 
 import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresPermission
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import com.example.mytravelcompanion.R
-import com.example.mytravelcompanion.data.AppDatabase
-import com.example.mytravelcompanion.util.SharedPrefManager
 import com.google.android.gms.location.Geofence
+import com.google.android.gms.location.GeofenceStatusCodes
 import com.google.android.gms.location.GeofencingEvent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
+    companion object {
+        private const val TAG = "GEOFENCE"
+    }
 
     override fun onReceive(context: Context, intent: Intent) {
+        Log.d(TAG, "OnReceive chiamato")
+        Log.d(TAG, "Action: ${intent.action}")
 
-        Log.d("GEOFENCE", "Extras: ${intent.extras?.keySet()}")
-        Log.d("GEOFENCE", "Receiver chiamato! Intent: $intent")
+        val event = GeofencingEvent.fromIntent(intent)
 
-        val geofencingEvent = GeofencingEvent.fromIntent(intent) ?: return
-        if (geofencingEvent.hasError()) return
-
-        val transition = geofencingEvent.geofenceTransition
-        val triggering = geofencingEvent.triggeringGeofences ?: emptyList()
-
-        if (geofencingEvent == null) {
-            Log.d("GEOFENCE", "GeofencingEvent null!")
+        if (event == null) {
+            Log.e(TAG, "GeofencingEvent è NULL!")
             return
         }
 
-        if (geofencingEvent.hasError()) {
-            Log.d("GEOFENCE", "Errore geofence: ${geofencingEvent.errorCode}")
+        if (event.hasError()) {
+            val errorMessage = getErrorString(event.errorCode)
+            Log.e(TAG, "Errore geofence: $errorMessage (code: ${event.errorCode})")
             return
         }
 
-        triggering.forEach { geofence ->
-            val id = geofence.requestId
-            val isInside = SharedPrefManager.isInside(context, id)
+        val transition = event.geofenceTransition
+        Log.d(TAG, "Transition type: $transition")
 
-            when (transition) {
-                Geofence.GEOFENCE_TRANSITION_ENTER -> {
-                    if (!isInside) {
-                        showNotification(context, id)
-                        SharedPrefManager.setInside(context, id, true)
-                    } else {
-                        Log.d("GEOFENCE", "Ignoro ingresso per $id")
-                    }
+        when (transition) {
+            Geofence.GEOFENCE_TRANSITION_ENTER -> {
+                Log.d(TAG, "ENTER detected!")
+                val triggered = event.triggeringGeofences
+
+                if (triggered.isNullOrEmpty()) {
+                    Log.w(TAG, "Nessun geofence triggering trovato")
+                    return
                 }
-                Geofence.GEOFENCE_TRANSITION_EXIT -> {
-                    SharedPrefManager.setInside(context, id, false)
-                    Log.d("GEOFENCE", "uscita da $id")
+
+                Log.d(TAG, "Geofence triggerati: ${triggered.size}")
+                triggered.forEach { geo ->
+                    val id = geo.requestId
+                    Log.d(TAG, "  -> Geofence ID: $id")
+                    notifyPoi(context, id)
                 }
+            }
+            else -> {
+                Log.w(TAG, "Transition type sconosciuto: $transition")
             }
         }
     }
 
+    private fun notifyPoi(context: Context, pointName: String) {
+        Log.d(TAG, "Creazione notifica per: $pointName")
 
-
-    private fun showNotification(context: Context, pointName: String) {
-        Log.d("GEOFENCE", "showNotification chiamato per $pointName")
-
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            Log.d("GEOFENCE", "Permesso POST_NOTIFICATIONS non concesso!")
-            return
-        }
-
-        val channelId = "poi_channel"
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "Punti di interesse",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Avvisi quando ti avvicini a un punto di interesse"
-                enableLights(true)
-                enableVibration(true)
-            }
-            val manager = context.getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
-        }
-
-        val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.point_interest_icon)
-            .setContentTitle("Sei vicino a un punto di interesse!")
+        val builder = NotificationCompat.Builder(context, "poi_channel")
+            .setSmallIcon(R.drawable.tc_logo)
+            .setContentTitle("Sei vicino ad un punto di interesse!")
             .setContentText(pointName)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
 
-        NotificationManagerCompat.from(context).notify(pointName.hashCode(), builder.build())
+        val nm = NotificationManagerCompat.from(context)
+
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            nm.notify(pointName.hashCode(), builder.build())
+            Log.d(TAG, "Notifica inviata con ID: ${pointName.hashCode()}")
+        } else {
+            Log.e(TAG, "Permesso POST_NOTIFICATIONS mancante!")
+        }
     }
 
-
+    private fun getErrorString(errorCode: Int): String {
+        return when (errorCode) {
+            GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE ->
+                "Geofence non disponibile"
+            GeofenceStatusCodes.GEOFENCE_TOO_MANY_GEOFENCES ->
+                "Troppi geofence registrati"
+            GeofenceStatusCodes.GEOFENCE_TOO_MANY_PENDING_INTENTS ->
+                "Troppi PendingIntent"
+            GeofenceStatusCodes.GEOFENCE_INSUFFICIENT_LOCATION_PERMISSION ->
+                "Permessi di localizzazione insufficienti"
+            else -> "Errore sconosciuto: $errorCode"
+        }
+    }
 }

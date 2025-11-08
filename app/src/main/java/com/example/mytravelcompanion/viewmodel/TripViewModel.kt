@@ -261,30 +261,21 @@ class TripViewModel(private val dao: TripDao,
     fun loadPoints(context: Context) = viewModelScope.launch {
         val list = pointDao.getAllPoints()
         _points.value = list
-        GeofenceHelper.registerGeofences(context, list)
+        com.example.mytravelcompanion.util.GeofenceHelper.registerAll(context, list)
     }
 
     fun addPoint(point: Point, context: Context) = viewModelScope.launch {
         pointDao.insertPoint(point)
         _points.value = _points.value + point
-        registerGeofence(point, context)
+        com.example.mytravelcompanion.util.GeofenceHelper.registerOne(context, point)
     }
 
     fun deletePoint(point: Point, context: Context) = viewModelScope.launch {
         pointDao.deletePoint(point)
         _points.value = _points.value.filter { it.name != point.name }
-        removeGeofence(point, context)
+        com.example.mytravelcompanion.util.GeofenceHelper.removeOne(context, point)
     }
 
-    //Geofencing
-    private fun registerGeofence(point: Point, context: Context) {
-        GeofenceHelper.registerGeofences(context, listOf(point))
-    }
-
-    private fun removeGeofence(point: Point, context: Context) {
-        val geofencingClient = com.google.android.gms.location.LocationServices.getGeofencingClient(context)
-        geofencingClient.removeGeofences(listOf(point.name))
-    }
 
 }
 

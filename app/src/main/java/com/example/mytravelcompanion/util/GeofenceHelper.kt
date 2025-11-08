@@ -1,84 +1,120 @@
+package com.example.mytravelcompanion.util
+
 import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
-import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
 import com.example.mytravelcompanion.data.Point
 import com.example.mytravelcompanion.services.GeofenceBroadcastReceiver
 import com.google.android.gms.location.Geofence
+import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
 
 object GeofenceHelper {
 
-    private const val GEOFENCE_RADIUS = 200f
     private const val TAG = "GEOFENCE"
+    private const val GEOFENCE_RADIUS_METERS = 200f
 
-    fun registerGeofences(context: Context, points: List<Point>) {
-        val geofencingClient = LocationServices.getGeofencingClient(context)
-        Log.d(TAG, "Tentativo di registrare ${points.size} geofence")
+    private fun getGeofencingClient(context: Context): GeofencingClient {
+        return LocationServices.getGeofencingClient(context)
+    }
 
-        // Controllo permessi
-        val hasFineLocation = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-        val hasBackgroundLocation = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-        Log.d(TAG, "Permessi: FINE=$hasFineLocation, BACKGROUND=$hasBackgroundLocation")
-
-        if (!hasFineLocation) {
-            Log.e(TAG, "Permesso ACCESS_FINE_LOCATION mancante! Interrompo registrazione")
-            return
-        }
-
-        val geofenceList = points.map {
-            Log.d(TAG, "Creazione geofence per ${it.name} a (${it.latitude}, ${it.longitude})")
-            Geofence.Builder()
-                .setRequestId(it.name)
-                .setCircularRegion(it.latitude, it.longitude, GEOFENCE_RADIUS)
-                .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .setTransitionTypes(
-                    Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT
-                )
-                .build()
-        }
-
-        if (geofenceList.isEmpty()) {
-            Log.d(TAG, "Lista geofence vuota, niente da registrare")
-            return
-        }
-
-        val intent = Intent(context, GeofenceBroadcastReceiver::class.java).apply {
-            action = "com.example.mytravelcompanion.ACTION_GEOFENCE_EVENT"
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
+    private fun getGeofencePendingIntent(context: Context): PendingIntent {
+        val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
+        // FLAG_MUTABLE è richiesto per i geofence
+        return PendingIntent.getBroadcast(
             context,
             0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
+    }
 
-        Log.d(TAG, "Rimozione geofence esistenti con ID: ${points.map { it.name }}")
-        geofencingClient.removeGeofences(points.map { it.name })
-            .addOnCompleteListener {
-                Log.d(TAG, "Rimozione geofence completata, aggiungo nuovi geofence")
-                geofencingClient.addGeofences(
-                    GeofencingRequest.Builder()
-                        .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-                        .addGeofences(geofenceList)
-                        .build(),
-                    pendingIntent
-                ).addOnSuccessListener {
-                    Log.d(TAG, "Geofence aggiunti con successo")
-                }.addOnFailureListener { e ->
-                    Log.e(TAG, "Errore nell'aggiungere geofence", e)
+    fun registerAll(context: Context, points: List<Point>) {
+        if (points.isEmpty()) {
+            Log.d(TAG, "Nessun punto da registrare")
+            return
+        }
+
+        if (!checkPermissions(context)) {
+            Log.e(TAG, "Permessi mancanti per registrare geofence")
+            return
+        }
+
+        val geofenceList = points.map { point ->
+            Geofence.Builder()
+                .setRequestId(point.name)
+                .setCircularRegion(
+                    point.latitude,
+                    point.longitude,
+                    GEOFENCE_RADIUS_METERS
+                )
+                .setExpirationDuration(Geofence.NEVER_EXPIRE)
+                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
+                .setLoiteringDelay(5000)
+                .build()
+        }
+
+        val geofencingRequest = GeofencingRequest.Builder()
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .addGeofences(geofenceList)
+            .build()
+
+        val client = getGeofencingClient(context)
+        val pendingIntent = getGeofencePendingIntent(context)
+
+        try {
+            client.addGeofences(geofencingRequest, pendingIntent)
+                .addOnSuccessListener {
+                    Log.d(TAG, "Registrati ${points.size} geofence con successo")
+                    points.forEach { point ->
+                        Log.d(TAG, "  - ${point.name} (${point.latitude}, ${point.longitude})")
+                    }
                 }
-            }.addOnFailureListener { e ->
-                Log.e(TAG, "Errore nella rimozione geofence", e)
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Errore registrazione geofence: ${e.message}", e)
+                }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "SecurityException: ${e.message}", e)
+        }
+    }
+
+    fun registerOne(context: Context, point: Point) {
+        registerAll(context, listOf(point))
+    }
+
+    fun removeOne(context: Context, point: Point) {
+        val client = getGeofencingClient(context)
+        client.removeGeofences(listOf(point.name))
+            .addOnSuccessListener {
+                Log.d(TAG, "Geofence rimosso: ${point.name}")
             }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Errore rimozione geofence: ${e.message}", e)
+            }
+    }
+
+    private fun checkPermissions(context: Context): Boolean {
+        val fineLocation = ActivityCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val backgroundLocation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+        Log.d(TAG, "Permessi - Fine: $fineLocation, Background: $backgroundLocation")
+        return fineLocation && backgroundLocation
     }
 }

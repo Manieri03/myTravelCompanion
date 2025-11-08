@@ -31,6 +31,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                100
+            )
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -55,20 +67,16 @@ class MainActivity : ComponentActivity() {
         createNotificationChannels()
         scheduleInactivityCheck()
 
+        val db = AppDatabase.getDatabase(applicationContext)
+        val tripViewModel = TripViewModelFactory(
+            db.tripDao(), db.MarkerDAO(), db.JourneyDAO(), db.PointDAO()
+        ).create(TripViewModel::class.java)
+
+        tripViewModel.loadPoints(applicationContext)
+
 
         setContent {
             MyTravelCompanionTheme {
-                val context = LocalContext.current
-                val db = AppDatabase.getDatabase(context)
-                val dao = db.tripDao()
-                val markerDAO = db.MarkerDAO()
-                val journeyDAO = db.JourneyDAO()
-                val pointDAO = db.PointDAO()
-
-                val tripViewModel: TripViewModel = viewModel(
-                    factory = TripViewModelFactory(dao, markerDAO, journeyDAO, pointDAO)
-                )
-
                 NavHost(tripViewModel)
             }
         }

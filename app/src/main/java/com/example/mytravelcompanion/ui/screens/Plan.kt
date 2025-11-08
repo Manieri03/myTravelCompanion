@@ -66,9 +66,6 @@ fun Plan(viewModel: TripViewModel) {
     val context = LocalContext.current
     val trips by viewModel.trips.collectAsState(initial = emptyList())
     val points by viewModel.points.collectAsState(initial = emptyList())
-    LaunchedEffect(Unit) {
-        viewModel.loadPoints(context)
-    }
 
     val today = LocalDate.now()
     val scheduledTrips = trips.filter { it.startDate != null && it.startDate.isAfter(today) }

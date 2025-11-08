@@ -486,7 +486,6 @@ fun TripMap(
             markers.clear()
             markers.addAll(fromDb)
             tripViewModel.loadJourneysForTrip(it.id)
-            tripViewModel.loadPoints(context)
         }
     }
 
@@ -586,10 +585,19 @@ fun TripMap(
             }
 
             points.forEach { point ->
+                val position = LatLng(point.latitude, point.longitude)
                 Marker(
-                    state = MarkerState(position = LatLng(point.latitude, point.longitude)),
+                    state = MarkerState(position = position),
                     title = point.name,
                     icon = customPointIcon ?: BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)
+                )
+
+                Circle(
+                    center = position,
+                    radius = 200.0,
+                    strokeColor = ciano.copy(alpha = 0.8f),
+                    strokeWidth = 4f,
+                    fillColor = ciano.copy(alpha = 0.2f)
                 )
             }
         }
