@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //Verifica permessi
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -64,14 +65,17 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        //creazione canali di notifica e check inattività (ogni 12 ore)
         createNotificationChannels()
         scheduleInactivityCheck()
+
 
         val db = AppDatabase.getDatabase(applicationContext)
         val tripViewModel = TripViewModelFactory(
             db.tripDao(), db.MarkerDAO(), db.JourneyDAO(), db.PointDAO()
         ).create(TripViewModel::class.java)
 
+        //caricamento dei punti con geofence associati
         tripViewModel.loadPoints(applicationContext)
 
 

@@ -26,17 +26,15 @@ class InactivityWorker(
         val daysSince = ChronoUnit.DAYS.between(lastEndDate, LocalDate.now())
 
         //1 giorno per debug, 10 più corretto
-        if (daysSince >= 1L) {
+        if (daysSince >= 10L) {
             showNotification()
         }
-
         return Result.success()
     }
 
+    //Notifica per inattività, mandata sul trip_channel
     private fun showNotification() {
         if (SharedPrefManager.hasAlreadyNotified(applicationContext)) return
-
-        createNotificationChannel()
 
         val builder = NotificationCompat.Builder(applicationContext, "trip_channel")
             .setSmallIcon(R.mipmap.ic_launcher)
@@ -58,17 +56,4 @@ class InactivityWorker(
         }
     }
 
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Trip Notifications"
-            val descriptionText = "Notifiche sui viaggi"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel("trip_channel", name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager: NotificationManager =
-                applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
 }
