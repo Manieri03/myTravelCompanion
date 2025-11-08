@@ -32,7 +32,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.mytravelcompanion.R
 
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun Gallery(viewModel: TripViewModel) {
     val context = LocalContext.current
