@@ -72,7 +72,6 @@ fun Graphics(tripViewModel: TripViewModel) {
                 }
             }
         }
-
         monthlyTripCount = counts
         loading = false
     }
@@ -142,8 +141,6 @@ fun JourneyHeatmapScreen(onMapTouchChange: (Boolean) -> Unit){
     var heatmapPoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var showLastMonthOnly by remember { mutableStateOf(false) }
-    val now = LocalDate.now()
-    val firstDayOfMonth = now.withDayOfMonth(1)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -236,11 +233,11 @@ fun JourneyHeatmapScreen(onMapTouchChange: (Boolean) -> Unit){
 
             map.clear()
             val colors = intArrayOf(
-                android.graphics.Color.rgb(0, 255, 255),
-                android.graphics.Color.rgb(0, 0, 255),
+                android.graphics.Color.rgb(255, 255, 102),
+                android.graphics.Color.rgb(255, 165, 0),
                 android.graphics.Color.rgb(255, 0, 0)
             )
-            val startPoints = floatArrayOf(0.2f, 0.5f, 1.0f)
+            val startPoints = floatArrayOf(0.2f, 0.6f, 1.0f)
 
             val gradient = com.google.maps.android.heatmaps.Gradient(colors, startPoints)
 
@@ -257,7 +254,7 @@ fun JourneyHeatmapScreen(onMapTouchChange: (Boolean) -> Unit){
 
 @Composable
 fun MonthlyTripsChart(monthlyTripCount: List<Int>, tripViewModel: TripViewModel) {
-    val context=LocalContext.current
+
     val max = monthlyTripCount.maxOrNull()?.toFloat() ?: 1f
     val scrollState = rememberScrollState()
 

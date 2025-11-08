@@ -5,14 +5,12 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,14 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.mytravelcompanion.ui.theme.blu
 import com.example.mytravelcompanion.ui.theme.ciano
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import com.example.mytravelcompanion.data.*
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -55,7 +49,6 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -133,7 +126,7 @@ fun Plan(viewModel: TripViewModel) {
                 )
 
                 // Tipo di viaggio
-                DropDownDemo(
+                DropDown(
                     modifier = Modifier.fillMaxWidth(),
                     selectedItem = selectedTripType,
                     onItemSelected = { selectedTripType = it }
@@ -564,7 +557,7 @@ fun DatePickerModal(
 }
 
 @Composable
-fun DropDownDemo(
+fun DropDown(
     modifier: Modifier = Modifier,
     selectedItem: TripType,
     onItemSelected: (TripType) -> Unit

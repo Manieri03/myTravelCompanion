@@ -10,6 +10,7 @@ import com.google.android.gms.location.*
 
 class JourneyService : Service() {
 
+    //posizione esatta
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
 

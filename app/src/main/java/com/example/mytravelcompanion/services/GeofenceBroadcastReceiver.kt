@@ -22,23 +22,21 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "OnReceive chiamato")
-        Log.d(TAG, "Action: ${intent.action}")
-
         val event = GeofencingEvent.fromIntent(intent)
 
+        //geofencing null
         if (event == null) {
             Log.e(TAG, "GeofencingEvent è NULL!")
             return
         }
 
+        //errore
         if (event.hasError()) {
             val errorMessage = getErrorString(event.errorCode)
             Log.e(TAG, "Errore geofence: $errorMessage (code: ${event.errorCode})")
             return
         }
-
         val transition = event.geofenceTransition
-        Log.d(TAG, "Transition type: $transition")
 
         when (transition) {
             Geofence.GEOFENCE_TRANSITION_ENTER -> {
@@ -53,18 +51,14 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                 Log.d(TAG, "Geofence triggerati: ${triggered.size}")
                 triggered.forEach { geo ->
                     val id = geo.requestId
-                    Log.d(TAG, "  -> Geofence ID: $id")
+                    Log.d(TAG, "Geofence ID: $id")
                     notifyPoi(context, id)
                 }
-            }
-            else -> {
-                Log.w(TAG, "Transition type sconosciuto: $transition")
             }
         }
     }
 
     private fun notifyPoi(context: Context, pointName: String) {
-        Log.d(TAG, "Creazione notifica per: $pointName")
 
         val builder = NotificationCompat.Builder(context, "poi_channel")
             .setSmallIcon(R.drawable.tc_logo)
@@ -82,12 +76,14 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             nm.notify(pointName.hashCode(), builder.build())
-            Log.d(TAG, "Notifica inviata con ID: ${pointName.hashCode()}")
+            Log.d(TAG, "Notifica inviata, ID: ${pointName.hashCode()}")
         } else {
-            Log.e(TAG, "Permesso POST_NOTIFICATIONS mancante!")
+            Log.e(TAG, "Permesso POST_NOTIFICATIONS mancante")
         }
     }
 
+
+    //per la gestione della stampa degli errori in console
     private fun getErrorString(errorCode: Int): String {
         return when (errorCode) {
             GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE ->

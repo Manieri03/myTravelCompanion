@@ -4,7 +4,6 @@ package com.example.mytravelcompanion.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,11 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mytravelcompanion.R
 import com.example.mytravelcompanion.data.TripViewModel
-import com.example.mytravelcompanion.data.TripViewModelFactory
-import com.example.mytravelcompanion.data.AppDatabase
 import com.example.mytravelcompanion.ui.theme.myTipography2
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -29,7 +25,6 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
-import java.time.LocalDate
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -37,8 +32,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.location.Location
 import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,12 +39,8 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestPermissi
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -63,25 +52,19 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
-import com.example.mytravelcompanion.data.LatLngSerializable
-import com.example.mytravelcompanion.data.MarkerDAO
 import com.example.mytravelcompanion.data.Trip
-import com.example.mytravelcompanion.util.TripType
 import com.example.mytravelcompanion.service.JourneyService
 import com.example.mytravelcompanion.ui.theme.blu
 import com.example.mytravelcompanion.ui.theme.ciano
-import com.example.mytravelcompanion.util.DistanceCalculator
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -89,7 +72,6 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import kotlinx.coroutines.awaitCancellation
@@ -99,7 +81,6 @@ import java.io.FileOutputStream
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.mytravelcompanion.util.PhotoHelper.compressImage
-import kotlinx.coroutines.coroutineScope
 
 @Composable
 fun Live(navController: NavController, tripViewModel: TripViewModel) {
@@ -116,16 +97,12 @@ fun Live(navController: NavController, tripViewModel: TripViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val launcher = rememberLauncherForActivityResult(RequestPermission()) { isGranted: Boolean ->
-        //
-    }
+    val launcher = rememberLauncherForActivityResult(RequestPermission()) { isGranted: Boolean -> }
 
+    // Se non concesso l'autorizzazione a fine location, la chiediamo
     val hasLocationPermission = ContextCompat.checkSelfPermission(
         context, Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
-
-
-    // Se non concesso, lo chiediamo
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
             launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -388,7 +365,6 @@ fun TripMap(
         position = CameraPosition.fromLatLngZoom(startLatLng!!, zoom)
     }
 
-
     // Camera / gallery launcher
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -479,7 +455,7 @@ fun TripMap(
         }
     }
 
-    // Carica markers, journeys e points dal DB
+    // Carica markers e journeys dal DB
     LaunchedEffect(currentTrip?.id) {
         currentTrip?.let {
             val fromDb = tripViewModel.getMarkersForTrip(it.id)
@@ -540,7 +516,7 @@ fun TripMap(
                 showMainDialog = true
             },
         ) {
-            // polilinee
+            // polilinee (viaggi)
             alljourneyPoints.forEachIndexed { _, path ->
                 if (path.isNotEmpty()) {
                     com.google.maps.android.compose.Polyline(
@@ -781,8 +757,6 @@ fun TripMap(
                                     }
                                 )
                             }
-
-
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))

@@ -68,11 +68,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun Story(tripViewModel: TripViewModel) {
-    val context = LocalContext.current
 
     val trips by tripViewModel.trips.collectAsState(initial = emptyList())
     val pastTrips = trips.filter {
@@ -148,7 +146,7 @@ fun Story(tripViewModel: TripViewModel) {
                     )
                 }
 
-                // Colonna filtri animata
+                //Filtri
                 AnimatedVisibility(visible = filtersExpanded) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -326,7 +324,9 @@ fun Story(tripViewModel: TripViewModel) {
 
 @Composable
 fun TripCard(trip: Trip) {
+
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
