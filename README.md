@@ -1,107 +1,76 @@
+<div align="center">
+
 # myTravelCompanion
 
-myTravelCompanion è un'applicazione Android sviluppata in Kotlin per il monitoraggio e la gestione dei propri viaggi.
+**Il tuo diario di viaggio che si scrive da solo.**
 
-L'app permette di creare viaggi, registrare percorsi, salvare punti di interesse, aggiungere note e associare foto ai luoghi visitati. Il progetto integra mappe, localizzazione, persistenza locale dei dati e notifiche basate sulla posizione.
+Traccia i percorsi, salva i luoghi, conserva le foto. Ogni viaggio diventa un ricordo che puoi rivivere.
 
-Il progetto è stato realizzato per il corso di **Laboratorio di Applicazioni Mobili**.
+[![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)](#)
+[![Kotlin](https://img.shields.io/badge/Made%20with-Kotlin-7F52FF?logo=kotlin&logoColor=white)](#)
+[![Offline](https://img.shields.io/badge/Funziona-Offline-blue)](#)
 
-## Funzionalità principali
+</div>
 
-- Creazione e gestione di viaggi
-- Classificazione dei viaggi per tipologia
-- Salvataggio delle date di inizio e fine viaggio
-- Monitoraggio dei percorsi tramite localizzazione
-- Registrazione di tragitti con durata e distanza
-- Visualizzazione dei viaggi su mappa
-- Salvataggio di punti di interesse
-- Associazione di note ai punti salvati
-- Associazione di foto ai punti visitati
-- Galleria delle immagini salvate durante i viaggi
-- Visualizzazione dello storico dei viaggi
-- Statistiche e riepiloghi grafici
-- Notifiche relative ai viaggi e ai punti di interesse
-- Geofencing per ricevere avvisi in prossimità di luoghi salvati
-- Persistenza locale dei dati tramite Room Database
+---
 
-## Obiettivo del progetto
+## Cos'è myTravelCompanion
 
-L'obiettivo di myTravelCompanion è offrire uno strumento mobile per accompagnare l'utente durante l'esperienza di viaggio.
+Le foto finiscono sparse nella galleria, i nomi dei posti si dimenticano, e dopo sei mesi di quel viaggio resta poco più di qualche scatto senza contesto.
 
-L'applicazione consente non solo di pianificare e archiviare un viaggio, ma anche di costruire una memoria digitale dell'esperienza, combinando percorsi, luoghi, fotografie e annotazioni personali.
+myTravelCompanion risolve il problema mentre viaggi, non dopo. Apri l'app quando parti, e lei si occupa del resto: registra dove sei stato, quanto hai camminato, cosa hai fotografato e in quale punto esatto. Quando torni a casa trovi il viaggio già raccontato.
 
-## Tecnologie utilizzate
+## Cosa puoi fare
 
-### Linguaggio e piattaforma
+### Crea il tuo viaggio
+Dai un nome alla partenza, scegli il tipo di esperienza (città, natura, mare, on the road) e imposta le date. Il viaggio è pronto ad accogliere tutto quello che succederà.
 
-- Kotlin
-- Android
-- Gradle Kotlin DSL
+### Registra i percorsi
+Un tap su "avvia tragitto" e l'app segue i tuoi spostamenti in background. Al ritorno vedi il tracciato completo sulla mappa, con distanza percorsa e tempo impiegato. Puoi chiudere l'app, mettere il telefono in tasca e continuare a camminare.
 
-### Interfaccia utente
+### Salva i posti che contano
+Quel bar con la vista, il punto panoramico fuori dai percorsi turistici, il ristorante da rifare. Salvali con un tap e restano fissati sulla mappa del viaggio.
 
-- Jetpack Compose
-- Material 3
-- Navigation Compose
+### Aggiungi foto e note
+Ogni luogo può contenere le tue fotografie e i tuoi appunti. Non una galleria generica, ma immagini legate al punto preciso in cui le hai scattate.
 
-### Persistenza dati
+### Ricevi avvisi sul posto
+Se ti avvicini a un luogo che avevi salvato, l'app te lo ricorda. Utile per non perdere quella tappa che avevi segnato mesi prima e poi dimenticato.
 
-- Room Database
-- Room DAO
-- Type Converters
-- SharedPreferences
+### Rivivi tutto
+Lo storico raccoglie ogni viaggio completato. Mappe, gallerie, statistiche e riepiloghi grafici ti restituiscono il quadro completo: quanti chilometri, quante tappe, quanti posti nuovi.
 
-### Mappe e localizzazione
+## Perché usarla
 
-- Google Maps SDK
-- Maps Compose
-- Google Play Services Location
-- Maps Utils KTX
-- Geofencing
+| | |
+|---|---|
+| **Tutto in un posto** | Percorsi, foto, note e mappe smettono di vivere in cinque app diverse |
+| **I tuoi dati restano tuoi** | Nessun account, nessun cloud, nessuna condivisione. Tutto è salvato sul dispositivo |
+| **Leggera sulla batteria** | Il tracciamento è pensato per durare quanto la tua giornata |
+| **Zero configurazione** | Si installa, si apre e funziona |
 
-### Gestione immagini
+## Come si usa
 
-- Coil Compose
-- FileProvider
-- Camera API
+1. **Crea un viaggio** e inserisci nome, tipologia e date
+2. **Avvia il tragitto** quando ti metti in movimento
+3. **Salva i punti** che vuoi ricordare, aggiungendo foto e note
+4. **Chiudi il viaggio** al ritorno e consulta il riepilogo completo
 
-### Background task e notifiche
+## Requisiti
 
-- WorkManager
-- NotificationChannel
-- Foreground Service
-- BroadcastReceiver
+- Android 7.0 o superiore
+- Permessi di localizzazione (necessari per il tracciamento dei percorsi)
+- Permessi fotocamera e archiviazione (per associare immagini ai luoghi)
+- Connessione dati consigliata per la visualizzazione delle mappe
 
-## Architettura del progetto
+## Privacy
 
-Il progetto segue una struttura modulare, separando dati, UI, navigazione, servizi e logica applicativa.
+myTravelCompanion non richiede registrazione e non trasmette i tuoi dati a server esterni. Percorsi, fotografie e annotazioni restano archiviati localmente sul tuo dispositivo. Disinstallando l'app, i dati vengono rimossi con essa.
 
-```text
-myTravelCompanion/
-│
-├── app/
-│   ├── src/
-│   │   └── main/
-│   │       ├── java/com/example/mytravelcompanion/
-│   │       │   ├── data/          # Entity, DAO, database e converter
-│   │       │   ├── navigation/    # Gestione della navigazione
-│   │       │   ├── services/      # Servizi e receiver
-│   │       │   ├── ui/            # Componenti, schermate e tema
-│   │       │   ├── util/          # Utility e funzioni di supporto
-│   │       │   ├── viewmodel/     # ViewModel dell'applicazione
-│   │       │   ├── workers/       # Worker in background
-│   │       │   └── MainActivity.kt
-│   │       │
-│   │       ├── res/               # Risorse Android
-│   │       └── AndroidManifest.xml
-│   │
-│   ├── build.gradle.kts
-│   └── proguard-rules.pro
-│
-├── gradle/
-├── build.gradle.kts
-├── settings.gradle.kts
-├── gradle.properties
-├── gradlew
-├── gradlew.bat
-└── .gitignore
+## Sviluppato con
+
+Kotlin e Jetpack Compose, con Google Maps per la cartografia e Room per l'archiviazione locale.
+
+## Il progetto
+
+myTravelCompanion nasce come progetto per il corso di **Laboratorio di Applicazioni Mobili**.
