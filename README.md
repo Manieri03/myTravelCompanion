@@ -8,7 +8,6 @@ Traccia i percorsi, salva i luoghi, conserva le foto. Ogni viaggio diventa un ri
 
 [![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)](#)
 [![Kotlin](https://img.shields.io/badge/Made%20with-Kotlin-7F52FF?logo=kotlin&logoColor=white)](#)
-[![Offline](https://img.shields.io/badge/Funziona-Offline-blue)](#)
 
 </div>
 
